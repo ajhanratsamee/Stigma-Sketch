@@ -46,14 +46,9 @@ func _star(c: Vector2, r: float, turn: float, color: Color) -> void:
 
 ## รอยเท้าแมว อุ้งใหญ่หนึ่งก้อน นิ้วสี่ก้อน
 func _paw(c: Vector2, r: float, turn: float, fill: Color, edge: Color) -> void:
-	var rot := Transform2D(turn, c)
-	var pads := [[Vector2(0.0, 0.25), 0.55], [Vector2(-0.55, -0.3), 0.24], [Vector2(-0.2, -0.62), 0.25], [Vector2(0.2, -0.62), 0.25], [Vector2(0.55, -0.3), 0.24]]
-	for pad in pads:
-		var at: Vector2 = rot * ((pad[0] as Vector2) * r)
-		draw_circle(at, float(pad[1]) * r + 3.0, edge)
-	for pad in pads:
-		var at: Vector2 = rot * ((pad[0] as Vector2) * r)
-		draw_circle(at, float(pad[1]) * r, fill)
+	# รอยเท้าแมวเป็นเม็ดกลมนุ่มแทน
+	draw_circle(c, r * 0.75, Color(fill, fill.a * 0.35))
+	draw_circle(c, r * 0.45, Color(fill, fill.a * 0.75))
 
 func _draw() -> void:
 	var k := _t / LIFE

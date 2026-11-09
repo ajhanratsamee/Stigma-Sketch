@@ -193,9 +193,9 @@ func _spear(from: Vector2, ang: float, length: float, a: float) -> void:
 	draw_circle(butt, 6.0, Color(ORANGE, a))
 
 func _paw(c: Vector2, r: float, col: Color, a: float) -> void:
-	draw_circle(c, r, Color(col, a))
-	for t in 3:
-		draw_circle(c + Vector2((float(t) - 1.0) * r * 0.9, -r * (1.05 + (0.15 if t == 1 else 0.0))), r * 0.42, Color(col, a))
+	# รอยเท้าแมวเป็นเม็ดกลมนุ่มแทน
+	draw_circle(c, r * 0.75, Color(col, a * 0.35))
+	draw_circle(c, r * 0.45, Color(col, a * 0.7))
 
 func _draw() -> void:
 	var f := hero.facing

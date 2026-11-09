@@ -42,6 +42,8 @@ func _ready() -> void:
 	if sc != null:
 		zoom_far = float(BIG_SET_ZOOM.get(str(sc.get_global_name()), ZOOM_FAR))
 	z_index = 40
+	# ฉาก HYPER อยู่เหนือฟิลเตอร์นุ่มของโลก ใส่โทนนุ่มให้เอง (รวมตัวละครในฉากกับของที่เพิ่มทีหลัง)
+	SoftFx.apply_tree(self)
 	_home_y = page.world.position.y
 	hero.plain_override = true
 	hero.plain_swing_kind = "hyper"

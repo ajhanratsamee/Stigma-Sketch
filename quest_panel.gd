@@ -11,10 +11,10 @@ signal closed
 
 const PANEL := Vector2(1240.0, 620.0)
 const INK := UiStyle.INK
-const PARCH := Color(0.98, 0.94, 0.84)
-const PARCH_DARK := Color(0.86, 0.76, 0.58)
-const OK_COLOR := Color(0.25, 0.55, 0.3)
-const NO_COLOR := Color(0.8, 0.22, 0.2)
+const PARCH := Color(0.975, 0.95, 0.9)
+const PARCH_DARK := Color(0.86, 0.79, 0.71)
+const OK_COLOR := Color(0.36, 0.58, 0.42)
+const NO_COLOR := Color(0.76, 0.38, 0.34)
 const BTN := Vector2(300.0, 76.0)
 const CARD := Vector2(250.0, 170.0)
 
@@ -157,7 +157,7 @@ func _chain_tag(q: Dictionary) -> String:
 	return str({"main": "หลัก", "side": "รอง", "board": "กระดาน"}.get(str(q["chain"]), ""))
 
 func _chain_color(q: Dictionary) -> Color:
-	return {"main": Color(0.85, 0.4, 0.3), "side": Color(0.35, 0.55, 0.8), "board": Color(0.4, 0.62, 0.35)}.get(str(q["chain"]), INK)
+	return {"main": Color(0.82, 0.55, 0.5), "side": Color(0.5, 0.64, 0.82), "board": Color(0.52, 0.7, 0.55)}.get(str(q["chain"]), INK)
 
 ## ปุ่มของเควสนี้ [ข้อความ กดได้]
 func quest_action(entry: Dictionary, id: String) -> Array:
@@ -400,7 +400,7 @@ func _draw() -> void:
 	draw_set_transform(Vector2(0.0, 50.0), 0.0, Vector2.ONE)
 	_npc(a + Vector2(150.0, 260.0))
 	var x0 := a.x + 290.0
-	_text(Vector2(x0, a.y + 110.0), str(q["title"]), 34, Color(0.6, 0.25, 0.5), false)
+	_text(Vector2(x0, a.y + 110.0), str(q["title"]), 34, Color(0.56, 0.38, 0.45), false)
 	Sketch.draw_wrapped(self, Vector2(x0, a.y + 140.0), str(q["text"]), 24, PANEL.x - 340.0, 80.0, INK)
 	var lv_ok := WalkPage.chosen_level >= int(q["level"])
 	var town_ok := WalkPage.current_town == int(q["town"])
@@ -434,7 +434,7 @@ func _draw() -> void:
 		word = "กำลังทำเควส..."
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	var g := button_rect()
-	_box(g, Color(0.85, 0.35, 0.5) if on else Color(0.66, 0.62, 0.6), 905)
+	_box(g, Color(0.77, 0.55, 0.55) if on else Color(0.78, 0.74, 0.71), 905)
 	_text(g.get_center(), word, 30, Color(1.0, 0.97, 0.92))
 
 func _draw_toast() -> void:
@@ -487,7 +487,7 @@ func _draw_list(entry: Dictionary) -> void:
 		_text(rr.position + Vector2(114.0, 72.0), goal_text(entry, q), UiStyle.SMALL + 1, OK_COLOR if st == "ready" else INK, false)
 		var act := quest_action(entry, str(it["id"]))
 		var b := row_button(i)
-		_box(b, Color(0.85, 0.35, 0.5) if bool(act[1]) else Color(0.8, 0.77, 0.72), 950 + i)
+		_box(b, Color(0.77, 0.55, 0.55) if bool(act[1]) else Color(0.8, 0.77, 0.72), 950 + i)
 		UiStyle.text(self, b.get_center(), str(act[0]), UiStyle.BODY + 2, Color(1.0, 0.97, 0.92), b.size.x - 12.0)
 	if pages > 1:
 		for up in [true, false]:
@@ -525,7 +525,7 @@ func _draw_detail(entry: Dictionary) -> void:
 	if mode == "mail":
 		var m := _mail(entry, detail)
 		_letter(a + Vector2(150.0, 300.0), false)
-		_text(Vector2(x0, a.y + 185.0), str(m.get("title", "")), 32, Color(0.6, 0.25, 0.5), false)
+		_text(Vector2(x0, a.y + 185.0), str(m.get("title", "")), 32, Color(0.56, 0.38, 0.45), false)
 		_text(Vector2(x0, a.y + 225.0), "จาก " + str(m.get("from", "")), UiStyle.SMALL + 2, UiStyle.DIM, false)
 		Sketch.draw_wrapped(self, Vector2(x0, a.y + 255.0), str(m.get("text", "")), UiStyle.BODY + 2, PANEL.x - 340.0, 170.0, INK, UiStyle.SMALL)
 		var gift := int(m.get("reward", {}).get("exp", 0))
@@ -544,7 +544,7 @@ func _draw_detail(entry: Dictionary) -> void:
 		var tag := Rect2(Vector2(x0, a.y + 160.0), Vector2(84.0, 34.0))
 		UiStyle.fill(self, tag, _chain_color(q), 17.0)
 		UiStyle.text(self, tag.get_center(), _chain_tag(q), UiStyle.SMALL, Color.WHITE)
-		_text(Vector2(x0 + 100.0, a.y + 178.0), str(q["title"]), 32, Color(0.6, 0.25, 0.5), false)
+		_text(Vector2(x0 + 100.0, a.y + 178.0), str(q["title"]), 32, Color(0.56, 0.38, 0.45), false)
 		Sketch.draw_wrapped(self, Vector2(x0, a.y + 215.0), str(q["text"]), UiStyle.BODY + 2, PANEL.x - 340.0, 120.0, INK, UiStyle.SMALL)
 		var giver := TownData.npc(QuestData.giver_of(q))
 		var y := a.y + 360.0
@@ -556,13 +556,13 @@ func _draw_detail(entry: Dictionary) -> void:
 		word = str(act[0])
 		on = bool(act[1])
 	var g := detail_button()
-	_box(g, Color(0.85, 0.35, 0.5) if on else Color(0.66, 0.62, 0.6), 980)
+	_box(g, Color(0.77, 0.55, 0.55) if on else Color(0.78, 0.74, 0.71), 980)
 	UiStyle.text(self, g.get_center(), word, 28, Color(1.0, 0.97, 0.92), g.size.x - 16.0)
 	UiStyle.button(self, back_rect(), "กลับ", 981)
 
 func _draw_pick() -> void:
 	var a := panel_rect().position
-	_text(a + Vector2(PANEL.x * 0.5, 130.0), "เควสสำเร็จ! เลือกคลาสใหม่ได้เลยเหมียว", 32, Color(0.6, 0.25, 0.5))
+	_text(a + Vector2(PANEL.x * 0.5, 130.0), "เควสสำเร็จ! เลือกคลาสใหม่ได้เลยเหมียว", 32, Color(0.56, 0.38, 0.45))
 	var list := QuestData.choices(WalkPage.chosen_weapon, WalkPage.chosen_class)
 	for i in list.size():
 		var c := card_rect(i, list.size())
@@ -575,5 +575,5 @@ func _draw_pick() -> void:
 			draw_circle(pc + Vector2((float(j) - 1.0) * 20.0, -30.0 - (6.0 if j == 1 else 0.0)), 10.0, Color(1.0, 0.65, 0.75))
 		_text(c.position + Vector2(CARD.x * 0.5, 130.0), str(list[i]), 22 if str(list[i]).length() < 16 else 18)
 	var g := button_rect()
-	_box(g, Color(0.85, 0.35, 0.5) if pick != "" else Color(0.66, 0.62, 0.6), 920)
+	_box(g, Color(0.77, 0.55, 0.55) if pick != "" else Color(0.78, 0.74, 0.71), 920)
 	_text(g.get_center(), "เปลี่ยนเป็น " + pick if pick != "" else "แตะเลือกคลาส", 26 if pick.length() < 14 else 22, Color(1.0, 0.97, 0.92))

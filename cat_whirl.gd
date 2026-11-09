@@ -56,46 +56,21 @@ const CAT_BEAN := Color(1.0, 0.62, 0.74)
 
 ## รอยเท้าแมว อุ้งใหญ่ นิ้วสี่นิ้ว มีถั่วชมพูข้างใน หมุนได้
 func _cat_paw(at: Vector2, r: float, base: Color, bean: Color = CAT_BEAN, spin: float = 0.0) -> void:
+	# รอยเท้าแมวเป็นเม็ดกลมนุ่มแทน
 	if r < 1.0 or base.a <= 0.01:
 		return
-	var pad := PackedVector2Array()
-	var inner := PackedVector2Array()
-	for i in 14:
-		var a := TAU * float(i) / 14.0
-		pad.append(at + Vector2(cos(a) * r, sin(a) * r * 0.8 + r * 0.3).rotated(spin))
-		inner.append(at + Vector2(cos(a) * r * 0.58, sin(a) * r * 0.45 + r * 0.36).rotated(spin))
-	SoftDraw.poly(self, pad, base)
-	SoftDraw.poly(self, inner, Color(bean, bean.a * base.a))
-	for t in 4:
-		var ang := -PI * 0.5 + (float(t) - 1.5) * 0.52
-		var toe := at + (Vector2(cos(ang), sin(ang)) * r * 1.15).rotated(spin)
-		draw_circle(toe, r * 0.34, base)
-		draw_circle(toe, r * 0.2, Color(bean, bean.a * base.a))
+	draw_circle(at, r * 0.75, Color(base, base.a * 0.35))
+	draw_circle(at, r * 0.45, Color(base, base.a * 0.7))
 
 ## หูแมวคู่ ฐานอยู่ที่ center ห่างกัน gap ชี้ไปทาง up
 func _cat_ears(center: Vector2, gap: float, w: float, h: float, color: Color, inner: Color = CAT_BEAN, up: Vector2 = Vector2.UP) -> void:
-	if color.a <= 0.01 or h < 1.0:
-		return
-	var side_v := Vector2(-up.y, up.x)
-	for s in [-1.0, 1.0]:
-		var base: Vector2 = center + side_v * gap * s
-		var tri := PackedVector2Array([base - side_v * w * 0.5, base + up * h + side_v * w * 0.12 * s, base + side_v * w * 0.5])
-		SoftDraw.poly(self, tri, color)
-		var mid := (tri[0] + tri[1] + tri[2]) / 3.0
-		SoftDraw.poly(self, PackedVector2Array([tri[0].lerp(mid, 0.5), tri[1].lerp(mid, 0.4), tri[2].lerp(mid, 0.5)]), Color(inner, inner.a * color.a))
+	# ลายแมวตกแต่งเอาออก ให้เอฟเฟกต์ดูนุ่มเรียบ
+	pass
 
 ## หน้าแมว ตายิ้ม ^ ^ ปาก ω แก้มชมพู
 func _cat_face(c: Vector2, r: float, ink: Color) -> void:
-	if ink.a <= 0.01 or r < 4.0:
-		return
-	var w := maxf(1.5, r * 0.09)
-	for s in [-1.0, 1.0]:
-		var e: Vector2 = c + Vector2(s * r * 0.36, -r * 0.1)
-		SoftDraw.pline(self, PackedVector2Array([e + Vector2(-r * 0.13, r * 0.07), e + Vector2(0.0, -r * 0.07), e + Vector2(r * 0.13, r * 0.07)]), ink, w, true)
-		draw_circle(c + Vector2(s * r * 0.58, r * 0.14), r * 0.11, Color(1.0, 0.55, 0.62, 0.55 * ink.a))
-	var m := c + Vector2(0.0, r * 0.18)
-	draw_arc(m + Vector2(-r * 0.09, 0.0), r * 0.09, 0.0, PI, 8, ink, w * 0.85, true)
-	draw_arc(m + Vector2(r * 0.09, 0.0), r * 0.09, 0.0, PI, 8, ink, w * 0.85, true)
+	# ลายแมวตกแต่งเอาออก ให้เอฟเฟกต์ดูนุ่มเรียบ
+	pass
 
 ## หนวดแมวสามเส้นออกจากจุด ไปทาง dir
 func _cat_whiskers(at: Vector2, dir_x: float, long: float, color: Color, width: float = 3.0) -> void:

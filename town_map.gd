@@ -8,9 +8,9 @@ signal closed
 const PANEL := Vector2(1480.0, 660.0)   # กว้างเกือบเต็มจอ บอสไม่ล้นขอบ
 const MAP_W := 880.0
 const NODE_R := 44.0
-const INK := Color(0.22, 0.17, 0.12)
-const PARCH := Color(0.97, 0.91, 0.77)
-const PARCH_DARK := Color(0.85, 0.74, 0.55)
+const INK := Color(0.36, 0.31, 0.29)
+const PARCH := Color(0.97, 0.94, 0.88)
+const PARCH_DARK := Color(0.85, 0.78, 0.68)
 const GO := Vector2(280.0, 74.0)
 
 var town := 0

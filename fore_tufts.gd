@@ -26,7 +26,7 @@ static func kind_for_theme(theme: String) -> String:
 			return "seaweed"
 		"cloudgarden", "skytemple":
 			return "cloud"
-	return ""
+	return DungeonLookMore.tufts(theme)
 
 ## ชนิดชั้นหน้าของเมือง (ใช้กับชั้นที่มีภูมิประเทศ ซึ่งไม่มีชั้นหน้าแบบเดิม)
 static func kind_for_town(style: String) -> String:

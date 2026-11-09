@@ -186,10 +186,9 @@ func _oval(c: Vector2, rx: float, ry: float, n: int = 56) -> PackedVector2Array:
 	return pts
 
 func _paw(at: Vector2, r: float, color: Color) -> void:
-	draw_circle(at + Vector2(0.0, r * 0.25), r * 0.55, color)
-	for i in 4:
-		var a := -2.45 + float(i) * 0.55
-		draw_circle(at + Vector2(cos(a), sin(a)) * r * 0.85 + Vector2(0.0, r * 0.15), r * 0.24, color)
+	# รอยเท้าแมวเป็นเม็ดกลมนุ่มแทน
+	draw_circle(at, r * 0.75, Color(color, color.a * 0.35 * 1.0))
+	draw_circle(at, r * 0.45, Color(color, color.a * 0.7 * 1.0))
 
 func _star(at: Vector2, r: float, color: Color) -> void:
 	# ประกายกลมนุ่ม ไม่มีแฉก

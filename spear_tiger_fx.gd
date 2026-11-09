@@ -61,11 +61,9 @@ func _capsule(from: Vector2, to: Vector2, w: float, a: float, col := ORANGE) -> 
 
 ## รอยเท้าเสือกลมๆ
 func _paw(c: Vector2, r: float, a: float) -> void:
-	draw_circle(c, r, Color(ORANGE, 0.85 * a))
-	draw_circle(c, r * 0.55, Color(CORE, 0.9 * a))
-	for i in 4:
-		var ang := deg_to_rad(-135.0 + 30.0 * float(i))
-		draw_circle(c + Vector2(cos(ang), sin(ang)) * r * 1.35, r * 0.36, Color(ORANGE, 0.85 * a))
+	# รอยเท้าเป็นเม็ดกลมนุ่ม
+	draw_circle(c, r * 1.1, Color(ORANGE, 0.3 * a))
+	draw_circle(c, r * 0.6, Color(CORE, 0.75 * a))
 
 func _arc_pts(center: Vector2, rx: float, ry: float, from_deg: float, to_deg: float, prog: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()

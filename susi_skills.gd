@@ -1444,7 +1444,7 @@ func _draw_ui() -> void:
 		for i in page.pad.slot_ids.size():
 			var id := str(page.pad.slot_ids[i])
 			var left := cd_left(id)
-			if id == "" or left <= 0.0:
+			if id == "" or left <= 0.0 or not page.pad.shown("s%d" % i):
 				continue
 			var r: Rect2 = page.pad.cell_rect("s%d" % i)
 			var k := clampf(left / maxf(cooldown(id), 0.01), 0.0, 1.0)

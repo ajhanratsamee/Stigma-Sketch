@@ -1,34 +1,22 @@
 class_name CatBackdrop
 extends Node2D
-## ฉากหลังมีชีวิตชีวาธีมแมว ใช้หน้าคลังตัวละครกับหน้าสร้างตัวละคร
-## พื้นไล่สีพาสเทลอุ่น รอยเท้าแมวจางๆ ไหมพรม ปลา หัวใจ ลอยขึ้นลงช้าๆ ธงราวรอยเท้าด้านบน
-## แมวหลากสีโผล่หัวที่ขอบล่าง กะพริบตาเป็นระยะ ทุกอย่างจางพอให้ตัวหนังสือกับการ์ดอ่านง่าย
-
-const TOP := Color(1.0, 0.92, 0.86)
-const LOW := Color(0.98, 0.86, 0.9)
-const INK := Color(0.2, 0.17, 0.15)
-const CATS := [Color(1.0, 0.75, 0.45), Color(0.82, 0.72, 0.95), Color(0.6, 0.6, 0.66), Color(0.98, 0.97, 0.94), Color(0.35, 0.32, 0.38), Color(1.0, 0.65, 0.6)]
+## ฉากหลังโทนนุ่มแบบหน้าโหลด "แมวมั้ย" ใช้หน้าคลังตัวละครกับหน้าสร้างตัวละคร
+## พื้นสีครีมเทาเรียบ รอยเท้าแมวจางมาก ฟองวงกลมลอยขึ้นช้าๆ แมวลายเส้นนอนขดหลับมุมขวาล่าง หายใจเบาๆ
+## ทุกอย่างจางและนิ่ง ไม่แย่งสายตากับการ์ดและตัวหนังสือ
 
 var _t := 0.0
 var _view := Vector2.ZERO
 var _paws: Array = []        # [ตำแหน่ง มุม ขนาด]
-var _floaters: Array = []    # [ชนิด ตำแหน่ง เฟส ขนาด]
-var _cats: Array = []        # [x สี ขนาด เฟสกะพริบ]
+var _bubbles: Array = []     # [x เฟส ขนาด ความเร็ว]
 
 func _ready() -> void:
 	_view = get_viewport_rect().size
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 77
-	for i in 26:
-		_paws.append([Vector2(rng.randf_range(0.0, _view.x), rng.randf_range(80.0, _view.y - 60.0)), rng.randf_range(-0.6, 0.6), rng.randf_range(10.0, 16.0)])
-	for i in 9:
-		_floaters.append([["yarn", "fish", "heart"][i % 3], Vector2(rng.randf_range(40.0, _view.x - 40.0), rng.randf_range(90.0, _view.y * 0.75)), rng.randf() * TAU, rng.randf_range(16.0, 26.0)])
-	var x := 40.0
-	var n := 0
-	while x < _view.x:
-		_cats.append([x, CATS[n % CATS.size()], rng.randf_range(34.0, 46.0), rng.randf() * 5.0])
-		x += rng.randf_range(160.0, 260.0)
-		n += 1
+	for i in 14:
+		_paws.append([Vector2(rng.randf_range(0.0, _view.x), rng.randf_range(90.0, _view.y - 80.0)), rng.randf_range(-0.6, 0.6), rng.randf_range(10.0, 15.0)])
+	for i in 7:
+		_bubbles.append([rng.randf_range(60.0, _view.x - 60.0), rng.randf(), rng.randf_range(8.0, 18.0), rng.randf_range(0.018, 0.035)])
 
 func _process(delta: float) -> void:
 	_t += delta
@@ -41,68 +29,60 @@ func _paw(c: Vector2, r: float, angle: float, color: Color) -> void:
 		var a := -2.3 + float(i) * 0.55
 		draw_circle(rot * (Vector2(cos(a), sin(a)) * r * 0.95), r * 0.24, color)
 
-func _oval(c: Vector2, rx: float, ry: float) -> PackedVector2Array:
+func _oval(c: Vector2, rx: float, ry: float, n := 28) -> PackedVector2Array:
 	var pts := PackedVector2Array()
-	for i in 20:
-		var a := TAU * float(i) / 20.0
+	for i in n:
+		var a := TAU * float(i) / float(n)
 		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
 	return pts
 
+func _ring(pts: PackedVector2Array, color: Color, width: float) -> void:
+	var p := pts.duplicate()
+	p.append(p[0])
+	draw_polyline(p, color, width, true)
+
 func _draw() -> void:
-	var steps := 14
-	for i in steps:
-		var k := float(i) / float(steps - 1)
-		draw_rect(Rect2(0.0, _view.y * float(i) / float(steps), _view.x, _view.y / float(steps) + 1.0), TOP.lerp(LOW, k))
+	draw_rect(Rect2(Vector2.ZERO, _view), UiStyle.SOFT_BG)
 	for p in _paws:
-		_paw(p[0], p[2], p[1], Color(0.92, 0.7, 0.68, 0.22))
-	# ธงราวรอยเท้าด้านบน
-	var pts := PackedVector2Array()
-	for i in 25:
-		var k := float(i) / 24.0
-		pts.append(Vector2(_view.x * k, 8.0 + 22.0 * absf(sin(k * PI * 3.0))))
-	draw_polyline(pts, Color(INK, 0.5), 1.6, true)
-	for i in range(1, 24, 2):
-		var flag := pts[i]
-		var col: Color = [Color(1.0, 0.7, 0.6), Color(0.75, 0.85, 1.0), Color(1.0, 0.88, 0.55), Color(0.85, 0.75, 1.0)][floori(float(i) / 2.0) % 4]
-		draw_colored_polygon(PackedVector2Array([flag + Vector2(-14.0, 0.0), flag + Vector2(14.0, 0.0), flag + Vector2(14.0, 26.0), flag + Vector2(0.0, 34.0), flag + Vector2(-14.0, 26.0)]), Color(col, 0.85))
-		_paw(flag + Vector2(0.0, 16.0), 6.0, 0.0, Color(1.0, 1.0, 1.0, 0.85))
-	# ของลอยไปมา
-	for f in _floaters:
-		var c: Vector2 = (f[1] as Vector2) + Vector2(sin(_t * 0.5 + float(f[2])) * 30.0, cos(_t * 0.8 + float(f[2])) * 16.0)
-		var r: float = f[3]
-		match str(f[0]):
-			"yarn":
-				draw_circle(c, r, Color(1.0, 0.6, 0.65, 0.35))
-				for k in 3:
-					draw_arc(c, r * (0.4 + 0.25 * float(k)), _t * 0.5 + float(k), _t * 0.5 + float(k) + 2.2, 10, Color(0.9, 0.45, 0.5, 0.4), 2.0, true)
-			"fish":
-				var dir := 1.0 if sin(_t * 0.5 + float(f[2])) > 0.0 else -1.0
-				draw_colored_polygon(PackedVector2Array([c + Vector2(-r * dir, 0.0), c + Vector2(-r * 0.2 * dir, -r * 0.5), c + Vector2(r * 0.6 * dir, -r * 0.2), c + Vector2(r * dir, -r * 0.55), c + Vector2(r * dir, r * 0.55), c + Vector2(r * 0.6 * dir, r * 0.2), c + Vector2(-r * 0.2 * dir, r * 0.5)]), Color(0.55, 0.75, 0.95, 0.4))
-				draw_circle(c + Vector2(-r * 0.6 * dir, -r * 0.08), 2.5, Color(INK, 0.5))
-			"heart":
-				PaperFront.heart(self, c, r * 0.75, Color(1.0, 0.62, 0.7, 0.4))
-	# แมวโผล่หัวที่ขอบล่าง กะพริบตา
-	for cat in _cats:
-		var x: float = cat[0]
-		var col: Color = cat[1]
-		var s: float = cat[2]
-		var bob := sin(_t * 1.2 + x) * 4.0
-		var head := Vector2(x, _view.y - s * 0.5 + bob)
-		for side in [-1.0, 1.0]:
-			var base := head + Vector2(side * s * 0.55, -s * 0.6)
-			draw_colored_polygon(PackedVector2Array([base + Vector2(-s * 0.3, 0.0), base + Vector2(side * s * 0.1, -s * 0.55), base + Vector2(s * 0.3, 0.0)]), col)
-		draw_colored_polygon(_oval(head, s, s * 0.85), col)
-		var rim := _oval(head, s, s * 0.85)
-		rim.append(rim[0])
-		draw_polyline(rim, Color(INK, 0.6), 2.0, true)
-		var blink := fposmod(_t + float(cat[3]), 4.0) < 0.15
-		for side in [-1.0, 1.0]:
-			var e := head + Vector2(side * s * 0.38, -s * 0.15)
-			if blink:
-				draw_line(e + Vector2(-5.0, 0.0), e + Vector2(5.0, 0.0), INK, 2.5, true)
-			else:
-				draw_circle(e, s * 0.13, INK)
-				draw_circle(e + Vector2(-2.0, -2.0), s * 0.04, Color.WHITE)
-			draw_circle(head + Vector2(side * s * 0.6, s * 0.15), s * 0.12, Color(1.0, 0.55, 0.6, 0.5))
-		draw_arc(head + Vector2(-s * 0.08, s * 0.1), s * 0.08, 0.0, PI, 6, INK, 2.0, true)
-		draw_arc(head + Vector2(s * 0.08, s * 0.1), s * 0.08, 0.0, PI, 6, INK, 2.0, true)
+		_paw(p[0], p[2], p[1], Color(UiStyle.SOFT_INK, 0.07))
+	# ฟองวงกลมลอยขึ้นช้าๆ จางลงตอนใกล้ขอบบน
+	for b in _bubbles:
+		var k := fposmod(float(b[1]) + _t * float(b[3]), 1.0)
+		var y := lerpf(_view.y + 20.0, 60.0, k)
+		var x: float = float(b[0]) + sin(_t * 0.6 + float(b[1]) * 9.0) * 14.0
+		var a := 0.22 * sin(k * PI)
+		draw_arc(Vector2(x, y), float(b[2]), 0.0, TAU, 24, Color(UiStyle.SOFT_INK, a), 2.0, true)
+	_sleeping_cat(Vector2(_view.x - 175.0, _view.y - 92.0), 0.32)
+
+## แมวลายเส้นนอนขดหลับ แบบเดียวกับหน้าโหลด ตัวหายใจขึ้นลงเบาๆ มีฟองหลับลอย
+func _sleeping_cat(at: Vector2, s: float) -> void:
+	var ink := Color(UiStyle.SOFT_INK, 0.85)
+	var fur := Color(0.8, 0.75, 0.71)
+	var lw := 2.6
+	var breathe := 1.0 + sin(_t * 1.6) * 0.025
+	# เงาจาง
+	draw_colored_polygon(_oval(at + Vector2(-10.0, 118.0 * s), 220.0 * s, 18.0 * s), Color(0.47, 0.4, 0.36, 0.12))
+	var body := _oval(at + Vector2(-15.0 * s, 40.0 * s), 185.0 * s, 80.0 * s * breathe)
+	draw_colored_polygon(body, fur)
+	_ring(body, ink, lw)
+	# หาง
+	draw_arc(at + Vector2(-95.0 * s, 85.0 * s), 135.0 * s, deg_to_rad(20.0), deg_to_rad(175.0), 24, ink, lw, true)
+	# หัว
+	var h := at + Vector2(120.0 * s, 20.0 * s)
+	var hr := 85.0 * s
+	for side in [-1.0, 1.0]:
+		var ex: float = h.x + side * 48.0 * s
+		var ear := PackedVector2Array([Vector2(ex - 30.0 * s, h.y - 50.0 * s), Vector2(ex + side * 8.0 * s, h.y - 118.0 * s), Vector2(ex + 34.0 * s, h.y - 45.0 * s)])
+		draw_colored_polygon(ear, fur)
+		draw_polyline(ear, ink, lw, true)
+	var head := _oval(h, hr, hr * 0.85)
+	draw_colored_polygon(head, fur)
+	_ring(head, ink, lw)
+	for side in [-1.0, 1.0]:
+		draw_arc(h + Vector2(side * 34.0 * s, -2.0 * s), 17.0 * s, deg_to_rad(15.0), deg_to_rad(165.0), 10, ink, 2.2, true)
+	draw_circle(h + Vector2(0.0, 19.0 * s), 6.0 * s, Color(0.88, 0.67, 0.65))
+	# ฟองหลับ สามวงลอยขึ้น
+	for i in 3:
+		var k := fposmod(_t * 0.35 + float(i) / 3.0, 1.0)
+		var c := h + Vector2(150.0 * s + k * 40.0, -110.0 * s - k * 70.0)
+		draw_arc(c, (8.0 + 8.0 * k) * s * 1.8, 0.0, TAU, 20, Color(UiStyle.SOFT_INK, 0.55 * sin(k * PI)), 2.0, true)

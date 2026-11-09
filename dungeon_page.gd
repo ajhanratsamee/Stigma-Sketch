@@ -496,6 +496,37 @@ func _draw_gate() -> void:
 	for i in 4:
 		_gate.draw_circle(p + Vector2((float(i) - 1.5) * 13.0, -20.0 - (5.0 if i == 1 or i == 2 else 0.0)), 7.0, Color(1.0, 0.8, 0.35))
 
+## ห้องยาว มอนอยู่ไกลนอกจอ: ลูกศรนุ่มที่ขอบจอชี้ไปหามอนตัวที่ใกล้ที่สุด บอกระยะคร่าวๆ
+func _draw_hunt_arrow() -> void:
+	if result != "" or is_boss_stage() or hero == null:
+		return
+	var best: Monster = null
+	var best_d := INF
+	for e in get_tree().get_nodes_in_group("monsters"):
+		var m := e as Monster
+		if m == null or m.state == "dead" or not is_instance_valid(m):
+			continue
+		var d := absf(m.pos.x - hero.pos.x)
+		if d < best_d:
+			best_d = d
+			best = m
+	if best == null:
+		return
+	var sx: float = world.position.x + best.position.x * world.scale.x
+	if sx > 0.0 and sx < _view.x:
+		return
+	var side := 1.0 if sx >= _view.x else -1.0
+	var y := _view.y * 0.5
+	var x := _view.x - 46.0 if side > 0.0 else 46.0 + UiStyle.safe_side()
+	if side > 0.0:
+		x -= UiStyle.safe_side()
+	var bob := sin(Time.get_ticks_msec() * 0.006) * 5.0
+	var tip := Vector2(x + side * (14.0 + bob), y)
+	_hud.draw_circle(Vector2(x, y), 30.0, Color(UiStyle.PAPER, 0.9))
+	_hud.draw_arc(Vector2(x, y), 30.0, 0.0, TAU, 32, Color(UiStyle.INK, 0.6), 2.5, true)
+	_hud.draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-side * 20.0, -13.0), tip + Vector2(-side * 20.0, 13.0)]), Color(0.86, 0.6, 0.55, 0.95))
+	_text(Vector2(x, y + 46.0), "%d" % int(round(best_d)), 19, INK)
+
 func _text(at: Vector2, word: String, size: int, color: Color) -> void:
 	var font := Sketch.font()
 	var w := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size).x
@@ -507,6 +538,7 @@ func _draw_hud() -> void:
 	_text(Vector2(cx, 32.0), str(data.get("name", "")), 28, INK)
 	var stage_word := "ลานบอส" if is_boss_stage() else "ห้อง %d / %d   มอนเหลือ %d" % [stage + 1, DungeonData.stage_count(dungeon_town, dungeon_index), alive]
 	_text(Vector2(cx, 66.0), stage_word, UiStyle.BODY, INK)
+	_draw_hunt_arrow()
 	# หลอดเลือดบอสหลายชั้น
 	if is_instance_valid(boss) and boss.state != "dead":
 		var raid := boss is RaidBoss
@@ -537,7 +569,7 @@ func _draw_hud() -> void:
 	if _ult_warn > 0.0:
 		_text(Vector2(_view.x * 0.5, _view.y * 0.42), "ท่าใหญ่! กระโดดขึ้นแท่นหลบ!", 46, Color(0.9, 0.2, 0.2, 0.6 + 0.4 * sin(_ult_warn * 20.0)))
 	if _flash_t > 0.0 and result == "":
-		_text(Vector2(_view.x * 0.5, _view.y * 0.3), _flash, 44, Color(0.75, 0.2, 0.2, minf(_flash_t * 2.0, 1.0)))
+		_text(Vector2(_view.x * 0.5, _view.y * 0.3), _flash, 44, Color(0.74, 0.42, 0.4, minf(_flash_t * 2.0, 1.0)))
 	if result == "win":
 		_text(Vector2(_view.x * 0.5, _view.y * 0.34), "ผ่านดันเจี้ยน!", 72, Color(0.85, 0.55, 0.1))
 	elif result == "lose":

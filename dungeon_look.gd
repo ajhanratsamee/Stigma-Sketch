@@ -133,11 +133,42 @@ const EXTRA := {
 	8: {1: ["airship", "เรือเหาะสวรรค์ทอง", "เรือเหาะทองล่องเหนือทะเลเมฆ"], 3: ["waterfall", "น้ำตกสายรุ้ง", "น้ำตกจากเกาะลอยฟ้า รุ้งพาดสวยงาม"], 5: ["cattree", "ป่าคอนโดแมวยักษ์", "ป่าเสาฝนเล็บสูงเสียดฟ้า ใบไม้ร่วงพลิ้ว"]},
 }
 
+## ฉากของดันแต่ละลำดับในเมือง (เมือง 2 ขึ้นไป) ไม่ซ้ำกันในเมืองเดียว หลากหลายทั้งกลางแจ้ง ใต้ดิน อุโมงค์ บนรถไฟ ฯลฯ
+const TOWN_LISTS := {
+	1: ["fishmarket", "kitchen", "canal", "train", "pier", "sewer"],
+	2: ["mine", "minecart", "crystal", "mushcave", "waterfall", "bamboo", "cellar"],
+	3: ["seacave", "underwater", "shipwreck", "pier", "airship", "sewer", "metro", "mansion"],
+	4: ["dunes", "train", "oasis", "desertruin", "nightmarket", "pyramid", "cellar", "duskroof", "mushcave"],
+	5: ["skislope", "toybox", "frozenlake", "snowpass", "train", "icecave", "bamboo", "cellar", "metro", "clocktower"],
+	6: ["crater", "minecart", "lavatunnel", "mushcave", "airship", "desertruin", "sewer", "metro", "cellar", "duskroof", "clocktower"],
+	7: ["rooftop", "nightmarket", "library", "mansion", "toybox", "cells", "clocktower", "duskroof", "metro", "sewer", "cellar", "candy"],
+	8: ["cloudgarden", "airship", "skytemple", "waterfall", "cloudisle", "cattree", "candy", "toyfactory", "clocktower", "bamboo", "pier", "duskroof", "snowpass"],
+}
+
+## ฉากที่วาดจริงของดันลำดับนี้ ไม่มีในรายการใช้ฉากตามธีมเมือง
+static func for_dungeon(town: int, index: int, base: String) -> String:
+	var list: Array = TOWN_LISTS.get(town, [])
+	if index >= 0 and index < list.size() and has(str(list[index])):
+		return str(list[index])
+	return for_town(town, base)
+
+## ชื่อ/คำบรรยายพิเศษของฉากนี้ในเมืองนี้ (จาก EXTRA) [ธีม ชื่อ คำบรรยาย] ไม่มีคืนว่าง
+static func extra_for(town: int, theme: String) -> Array:
+	for k in (EXTRA.get(town, {}) as Dictionary):
+		var e: Array = EXTRA[town][k]
+		if str(e[0]) == theme:
+			return e
+	return []
+
 static func extra(town: int, index: int) -> Array:
 	return (EXTRA.get(town, {}) as Dictionary).get(index, [])
 
 static func has(theme: String) -> bool:
-	return LOOKS.has(theme)
+	return LOOKS.has(theme) or DungeonLookMore.LOOKS.has(theme)
+
+## ข้อมูลฉาก ทั้งชุดเดิมและชุดเพิ่ม (DungeonLookMore)
+static func _look(theme: String) -> Dictionary:
+	return LOOKS[theme] if LOOKS.has(theme) else (DungeonLookMore.LOOKS.get(theme, {}) as Dictionary)
 
 static func for_town(town: int, base: String) -> String:
 	return str((TOWN_THEMES.get(town, {}) as Dictionary).get(base, base))
@@ -152,14 +183,14 @@ static func _box(c: CanvasItem, x: float, y: float, w: float, h: float, color: C
 	UiStyle.fill(c, Rect2(x, y, w, h), color, minf(10.0, minf(w, h) * 0.3))
 
 static func haze(theme: String) -> Color:
-	return (LOOKS[theme] as Dictionary).get("haze", Color(1.0, 1.0, 1.0, 0.15))
+	return _look(theme).get("haze", Color(1.0, 1.0, 1.0, 0.15))
 
 static func plat(theme: String) -> Color:
-	return (LOOKS[theme] as Dictionary).get("plat", Color(0.6, 0.5, 0.4))
+	return _look(theme).get("plat", Color(0.6, 0.5, 0.4))
 
 ## ฟ้า หรือผนังด้านในถ้ำ/ห้อง พร้อมเพดานมนห้อยลงมา
 static func sky(c: CanvasItem, theme: String, view: Vector2, g: float, rng: RandomNumberGenerator) -> void:
-	var look: Dictionary = LOOKS[theme]
+	var look: Dictionary = _look(theme)
 	var top: Color = look["sky"][0]
 	var low: Color = look["sky"][1]
 	for i in 14:
@@ -199,6 +230,9 @@ static func sky(c: CanvasItem, theme: String, view: Vector2, g: float, rng: Rand
 
 ## ฉากไกล
 static func far(c: CanvasItem, theme: String, g: float, span: float, rng: RandomNumberGenerator) -> void:
+	if DungeonLookMore.LOOKS.has(theme):
+		DungeonLookMore.far(c, theme, g, span, rng)
+		return
 	var look: Dictionary = LOOKS[theme]
 	var col: Color = look["far_col"]
 	var x := -span
@@ -349,6 +383,9 @@ static func far(c: CanvasItem, theme: String, g: float, span: float, rng: Random
 
 ## ฉากกลาง
 static func mid(c: CanvasItem, theme: String, g: float, span: float, rng: RandomNumberGenerator) -> void:
+	if DungeonLookMore.LOOKS.has(theme):
+		DungeonLookMore.mid(c, theme, g, span, rng)
+		return
 	var look: Dictionary = LOOKS[theme]
 	var col: Color = look["mid_col"]
 	var x := -span
@@ -515,12 +552,15 @@ static func mid(c: CanvasItem, theme: String, g: float, span: float, rng: Random
 
 ## ชั้นเคลื่อนไหวของฉากพิเศษ วาดทุกเฟรมบนจอ (cam คือการเลื่อนกล้อง ใช้ทำพารัลแลกซ์)
 static func has_anim(theme: String) -> bool:
-	return LOOKS.has(theme) and (LOOKS[theme] as Dictionary).has("anim")
+	return has(theme) and _look(theme).has("anim")
 
 static func gravity_k(theme: String) -> float:
 	return 0.62 if theme == "underwater" else 1.0
 
 static func anim(c: CanvasItem, theme: String, t: float, view: Vector2, g: float, cam: float) -> void:
+	if DungeonLookMore.LOOKS.has(theme):
+		DungeonLookMore.anim(c, theme, t, view, g, cam)
+		return
 	var w := view.x
 	match str((LOOKS[theme] as Dictionary).get("anim", "")):
 		"train":
@@ -693,4 +733,4 @@ static func anim(c: CanvasItem, theme: String, t: float, view: Vector2, g: float
 				_blob(c, Vector2(lx + sin(t + float(i)) * 10.0, ly), 9.0, 11.0, Color(1.0, 0.75, 0.5, 0.8))
 
 static func ground(theme: String) -> Array:
-	return (LOOKS[theme] as Dictionary)["ground"]
+	return _look(theme)["ground"]

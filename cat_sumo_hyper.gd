@@ -235,13 +235,9 @@ func _ring(x: float, k: float, rmax: float, w: float) -> void:
 
 ## รอยอุ้งมือแมวบนพื้น บีบแนวตั้งให้นอนราบ
 func _paw_print(x: float, size: float, a: float) -> void:
-	var c := Vector2(x, 4.0)
-	draw_set_transform(c, 0.0, Vector2(1.0, 0.32))
-	draw_circle(Vector2(0.0, size * 0.25), size * 0.55, Color(DARK, 0.55 * a))
-	for t in 4:
-		var q := Vector2((float(t) - 1.5) * size * 0.42, -size * (0.42 + (0.16 if t == 1 or t == 2 else 0.0)))
-		draw_circle(q, size * 0.2, Color(DARK, 0.55 * a))
-	draw_circle(Vector2(0.0, size * 0.25), size * 0.32, Color(CREAM, 0.35 * a))
+	# รอยเท้าบนพื้นเป็นวงรีนุ่มแทน
+	draw_set_transform(Vector2(x, 4.0), 0.0, Vector2(1.0, 0.32))
+	draw_circle(Vector2.ZERO, size * 0.6, Color(DARK, 0.35 * a))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 func _draw() -> void:

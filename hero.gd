@@ -776,6 +776,9 @@ var active_t0 := 0.0
 var active_t1 := 0.0
 var active_done := false
 var hit_landed := false
+var is_player := false          # ตัวที่ผู้เล่นบังคับ (เล่นเสียง สั่น) NPC ไม่มีเสียง
+var _snd_air := 0.0
+var _snd_dash := 0.0
 var pierced := false
 var _tick_wait := 0.0
 var _tick_left := 0
@@ -935,6 +938,9 @@ func take_damage(dmg: float, dir: float, kind := "melee") -> void:
 		_spawn_fx("gate", pos + Vector2(0.0, 1.1))
 		return
 	_hitstop(0.08)
+	if is_player:
+		Snd.play("hurt", -2.0, 0.05)
+		Snd.buzz(25)
 	if super_armor() and hp > 0.0:
 		invuln_t = INVULN_TIME   # ไม่ชะงัก ท่ายังเดินต่อ
 		return
@@ -1582,6 +1588,7 @@ func _update_book(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_clock += delta
+	_snd_tick(delta)
 	_update_book(delta)
 	buff_t = maxf(buff_t - delta, 0.0)
 	mana_buff_t = maxf(mana_buff_t - delta, 0.0)
@@ -2144,8 +2151,24 @@ func _finish_move(delta: float) -> void:
 	_place()
 	queue_redraw()
 
+## เสียงลงพื้นกับแดชของตัวผู้เล่น
+func _snd_tick(delta: float) -> void:
+	if not is_player:
+		return
+	if on_floor():
+		if _snd_air > 0.25:
+			Snd.play("land", -6.0, 0.05)
+		_snd_air = 0.0
+	else:
+		_snd_air += delta
+	if dash_t > 0.0 and _snd_dash <= 0.0:
+		Snd.play("dash", -5.0, 0.06)
+	_snd_dash = dash_t
+
 func _jump() -> void:
 	vel.y = JUMP_VELOCITY
+	if is_player:
+		Snd.play("jump", -5.0, 0.05)
 	jump_dashed = dash_t > 0.0
 	air_dash_used = jump_dashed
 

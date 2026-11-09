@@ -76,23 +76,8 @@ func _flame(r: float, stretch: float, phase: float, shift: Vector2) -> PackedVec
 
 ## หน้าแมวบนลูกไฟ หูสองข้างชี้ขึ้นเสมอ ตายิ้ม ^ ^ ปาก ω
 func cat_face(r: float, ear: Color, inner_ear: Color, ink: Color) -> void:
-	for side in [-1.0, 1.0]:
-		var base := Vector2(side * r * 0.55, -r * 0.62)
-		var tri := PackedVector2Array([base + Vector2(-side * r * 0.32, r * 0.08), base + Vector2(side * r * 0.12, -r * 0.62), base + Vector2(side * r * 0.36, r * 0.18)])
-		draw_colored_polygon(tri, ear)
-		var c := (tri[0] + tri[1] + tri[2]) / 3.0
-		draw_colored_polygon(PackedVector2Array([tri[0].lerp(c, 0.45), tri[1].lerp(c, 0.45), tri[2].lerp(c, 0.45)]), inner_ear)
-	if r < 14.0:
-		return
-	var w := maxf(2.0, r * 0.08)
-	for side in [-1.0, 1.0]:
-		var e := Vector2(side * r * 0.3, -r * 0.08)
-		draw_polyline(PackedVector2Array([e + Vector2(-r * 0.12, r * 0.06), e + Vector2(0.0, -r * 0.06), e + Vector2(r * 0.12, r * 0.06)]), ink, w, true)
-	var m := Vector2(0.0, r * 0.2)
-	draw_arc(m + Vector2(-r * 0.08, 0.0), r * 0.08, 0.0, PI, 8, ink, w * 0.8, true)
-	draw_arc(m + Vector2(r * 0.08, 0.0), r * 0.08, 0.0, PI, 8, ink, w * 0.8, true)
-	draw_circle(Vector2(-r * 0.48, r * 0.12), r * 0.1, Color(1.0, 0.55, 0.6, 0.6))
-	draw_circle(Vector2(r * 0.48, r * 0.12), r * 0.1, Color(1.0, 0.55, 0.6, 0.6))
+	# ลายแมวตกแต่งเอาออก ให้เอฟเฟกต์ดูนุ่มเรียบ
+	pass
 
 func _draw() -> void:
 	var r := size()

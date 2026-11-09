@@ -15,6 +15,8 @@ config/icon="res://icon_cat.png"
 [autoload]
 
 WebFullscreen="*res://web_fullscreen.gd"
+Sfx="*res://sfx.gd"
+AppPause="*res://app_pause.gd"
 
 [display]
 

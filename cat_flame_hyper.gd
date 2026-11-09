@@ -36,7 +36,7 @@ func _stage_start() -> void:
 	page.world.add_child(_ball)
 
 ## ซ่อนประกายดาวที่ลอยรอบลูกไฟ เหลือแค่แสงฟุ้งด้านหลัง
-func _no_stars(node: Node) -> void:
+func _no_stars(node) -> void:
 	if not is_instance_valid(node):
 		return
 	for ch in node.get_children():
@@ -224,5 +224,5 @@ func _draw() -> void:
 			var p := c + Vector2(cos(a), sin(a) * 0.7) * (300.0 + (1100.0 + 500.0 * float(n % 2)) * spread)
 			_kitty_paw(self, p, (80.0 - 25.0 * float(n % 2)) * (1.0 - spread * 0.5), Color(1.0, 0.7, 0.3, 0.85 * (1.0 - spread)), a + PI * 0.5)
 	var flash := clampf(1.0 - _boom_t / 0.25, 0.0, 1.0)
-	draw_circle(c, 1300.0, Color(1.0, 0.95, 0.8, 0.6 * flash))
-	draw_circle(c, 500.0, Color(1.0, 1.0, 0.95, 0.8 * flash))
+	draw_circle(c, 1300.0, Color(1.0, 0.95, 0.85, 0.25 * flash))   # แฟลชจางลง สบายตา
+	draw_circle(c, 500.0, Color(1.0, 0.97, 0.9, 0.35 * flash))

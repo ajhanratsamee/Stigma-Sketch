@@ -223,25 +223,13 @@ func _restore() -> void:
 
 # ---------------------------------------------------------------- ลายแมว
 func _paw(c: Vector2, s: float, col: Color, ry_k := 1.0) -> void:
-	if s < 1.5 or col.a <= 0.01:
-		return
-	var pad := PackedVector2Array()
-	for i in 14:
-		var a := TAU * float(i) / 14.0
-		pad.append(c + Vector2(cos(a) * s * 0.6, (s * 0.3 + sin(a) * s * 0.45) * ry_k))
-	draw_colored_polygon(pad, col)
-	for t in 4:
-		draw_circle(c + Vector2((float(t) - 1.5) * s * 0.42, -s * (0.24 + (0.15 if t == 1 or t == 2 else 0.0)) * ry_k), s * 0.18, col)
+	# รอยเท้าแมวเป็นเม็ดกลมนุ่มแทน
+	draw_circle(c, s * 0.75, Color(col, col.a * 0.35 * 1.0))
+	draw_circle(c, s * 0.45, Color(col, col.a * 0.7 * 1.0))
 
 func _ears(c: Vector2, r: float, col: Color) -> void:
-	if r < 2.0:
-		return
-	for side in [-1.0, 1.0]:
-		var base := c + Vector2(side * r * 0.55, -r * 0.62)
-		var tri := PackedVector2Array([base + Vector2(-side * r * 0.32, r * 0.1), base + Vector2(side * r * 0.12, -r * 0.62), base + Vector2(side * r * 0.38, r * 0.2)])
-		draw_colored_polygon(tri, col)
-		var m := (tri[0] + tri[1] + tri[2]) / 3.0
-		draw_colored_polygon(PackedVector2Array([tri[0].lerp(m, 0.45), tri[1].lerp(m, 0.45), tri[2].lerp(m, 0.45)]), Color(PINK, col.a))
+	# ลายแมวตกแต่งเอาออก ให้เอฟเฟกต์ดูนุ่มเรียบ
+	pass
 
 func _star(at: Vector2, r: float, col: Color) -> void:
 	# ประกายกลมนุ่ม ไม่มีแฉก

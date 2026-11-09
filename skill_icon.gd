@@ -2,7 +2,8 @@ class_name SkillIcon
 ## ไอคอนสกิลแบบแมว วาดในวงกลมสีพาสเทล ขอบหมึก เลือกรูปจากคำในรหัสสกิล
 ## ใช้ในช่องสกิลและการ์ดในแผงสกิล
 
-const INK := Color(0.2, 0.17, 0.15)
+const INK := Color(0.36, 0.31, 0.29)
+const SOFTEN := 0.3              # พื้นไอคอนผสมครีม ให้เป็นสีพาสเทลนุ่ม
 ## [คำในรหัส ชนิดรูป สีพื้น] ตรวจตามลำดับ
 const RULES := [
 	["hyper", "crown", Color(1.0, 0.85, 0.4)],
@@ -60,7 +61,7 @@ static func _paw(c: CanvasItem, at: Vector2, r: float, color: Color) -> void:
 static func draw(c: CanvasItem, at: Vector2, size: float, id: String, dim := false) -> void:
 	var r := size * 0.5
 	var info := kind_of(id)
-	var back: Color = info[1]
+	var back: Color = (info[1] as Color).lerp(Color(0.97, 0.95, 0.92), SOFTEN)
 	var a := 0.45 if dim else 1.0
 	c.draw_circle(at, r, Color(back, a))
 	var ink := Color(INK, a)

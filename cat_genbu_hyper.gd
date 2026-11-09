@@ -240,11 +240,9 @@ func _oval(c: Vector2, rx: float, ry: float, n := 32) -> PackedVector2Array:
 
 ## รอยเท้าแมวแบนบนพื้น
 func _paw(c: Vector2, s: float, col: Color) -> void:
-	if s < 2.0 or col.a <= 0.0:
-		return
-	draw_colored_polygon(_oval(c + Vector2(0.0, s * 0.2), s * 0.62, s * 0.22, 16), col)
-	for i in 3:
-		draw_colored_polygon(_oval(c + Vector2((float(i) - 1.0) * s * 0.55, -s * 0.18), s * 0.2, s * 0.09, 10), col)
+	# รอยเท้าแมวเป็นเม็ดกลมนุ่มแทน
+	draw_circle(c, s * 0.75, Color(col, col.a * 0.35 * 1.0))
+	draw_circle(c, s * 0.45, Color(col, col.a * 0.7 * 1.0))
 
 ## หอกยาว ด้ามไม้ส้ม หัวหอกทอง พู่ส้ม
 func _draw_spear(foot: Vector2, top: Vector2, fade: float) -> void:

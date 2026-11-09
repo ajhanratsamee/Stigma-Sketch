@@ -373,16 +373,119 @@ const PATHS := {
 		"stairs": [], "bridges": [[-18.0, -15.0, "cloud"], [-8.0, -5.0, "cloud"], [3.0, 6.0, "cloud"], [14.0, 17.0, "cloud"]], "bends": [[-5.0, 3.0]], "below": "void"}},
 }
 
+## เมืองยาวขึ้น: ยืดตำแหน่งแนวนอนทุกอย่าง (NPC ป้าย ประตู วาร์ป ภูมิประเทศ) เท่านี้ ยกเว้นเมืองดาวพื้นโค้ง
+const STRETCH := 1.8
+## จำนวนชั้นขั้นต่ำของแต่ละเมือง (3-5 ชั้น) ไม่พอเติมชั้นจาก MORE_FLOORS
+const MIN_FLOORS := [3, 4, 4, 4, 5, 5, 5, 5, 5]
+## ชั้นเพิ่มของแต่ละเมือง [ชื่อ, deco, สูง, ชนิดทางวาร์ป]  deco ห้องในอาคารวาดฉากต่างจากถนน
+const MORE_FLOORS := {
+	0: [["ห้องใต้ดินเก็บขนม", "cellar", -8.0, "ladder"], ["สวนดอกไม้หลังกำแพง", "garden", 6.0, "door"], ["ดาดฟ้าหอระฆัง", "roof", 12.0, "ladder"], ["ห้องโถงกิลด์", "hall", 4.0, "door"]],
+	1: [["ห้องครัวร้านปลาทู", "kitchen", -6.0, "door"], ["ห้องเก็บปลาใต้ดิน", "cellar", -12.0, "ladder"], ["สวนลอยฟ้าหอนาฬิกา", "garden", 14.0, "ladder"]],
+	2: [["โรงเตี๊ยมบนเขา", "hall", 6.0, "door"], ["ห้องสมุดคนแร่", "library", 10.0, "ladder"], ["สวนดอกไม้ภูเขา", "garden", 14.0, "ladder"]],
+	3: [["ห้องครัวเรือแมวน้ำ", "kitchen", -4.0, "door"], ["โกดังใต้ท่าเรือ", "cellar", -10.0, "ladder"], ["ยอดประภาคาร", "roof", 12.0, "ladder"]],
+	4: [["ห้องโถงสุลต่านเหมียว", "throne", 6.0, "door"], ["ห้องสมุดผืนทราย", "library", 10.0, "ladder"], ["สวนน้ำพุใต้ทราย", "garden", -14.0, "pipe"]],
+	5: [["โรงอาหารอุ่นๆ", "kitchen", -12.0, "door"], ["ห้องสมุดหิมะ", "library", 12.0, "ladder"], ["สวนเรือนกระจก", "garden", 16.0, "door"]],
+	6: [["โรงตีเหล็กร้อน", "hall", -14.0, "door"], ["ห้องครัวเกาะร้อน", "kitchen", 12.0, "door"], ["สวนหินอุ่น", "garden", 16.0, "ladder"]],
+	7: [["ห้องบัลลังก์เงา", "throne", 24.0, "pad"], ["ห้องใต้ดินปราสาท", "cellar", -8.0, "ladder"], ["ห้องครัวปราสาท", "kitchen", -16.0, "door"]],
+	8: [["ห้องโถงทองคำ", "hall", 24.0, "cloud"], ["ห้องสมุดบนเมฆ", "library", -8.0, "cloud"], ["ห้องบัลลังก์สวรรค์", "throne", 32.0, "cloud"]],
+}
+const MORE_HALF := 22.0       # ชั้นเพิ่มยาวข้างละเท่านี้ (ก่อนยืด)
+
+static var _made := {}
+
+static func _stretch_on(t: int) -> bool:
+	return t >= 0 and t < TOWNS.size() and str((TOWNS[t] as Dictionary).get("style", "")) != "curve"
+
 static func terrain(t: int, fl: int) -> Dictionary:
 	var td: Dictionary = PATHS.get(t, {})
-	return td.get(fl, {})
+	var d: Dictionary = td.get(fl, {})
+	if d.is_empty() or not _stretch_on(t):
+		return d
+	var k := STRETCH
+	var out := d.duplicate(true)
+	var path := []
+	for p in d.get("path", []):
+		path.append([float(p[0]) * k, float(p[1])])
+	out["path"] = path
+	for key in ["stairs", "bends"]:
+		var list := []
+		for p in d.get(key, []):
+			list.append([float(p[0]) * k, float(p[1]) * k])
+		out[key] = list
+	var br := []
+	for p in d.get("bridges", []):
+		br.append([float(p[0]) * k, float(p[1]) * k, p[2]])
+	out["bridges"] = br
+	return out
 
+## เมืองที่ใช้จริง: ยืดยาว + เติมชั้นให้ครบ 3-5 ชั้น พร้อมทางวาร์ปไปกลับจากชั้นหลัก (แคชไว้)
 static func town(i: int) -> Dictionary:
-	return TOWNS[i] if i >= 0 and i < TOWNS.size() else (TOWNS[0] as Dictionary)
+	var t := i if i >= 0 and i < TOWNS.size() else 0
+	if _made.has(t):
+		return _made[t]
+	var d: Dictionary = (TOWNS[t] as Dictionary).duplicate(true)
+	var k := STRETCH if _stretch_on(t) else 1.0
+	d["half"] = float(d.get("half", 30.0)) * k
+	for fl in d.get("floors", []):
+		fl["half"] = float(fl.get("half", 20.0)) * k
+	for n in d.get("npcs", []):
+		n["x"] = float(n.get("x", 0.0)) * k
+	for key in ["board", "mailbox", "dungeon_gate"]:
+		if d.has(key):
+			d[key]["x"] = float(d[key].get("x", 0.0)) * k
+	for w in d.get("warps", []):
+		w["x"] = float(w.get("x", 0.0)) * k
+		w["to_x"] = float(w.get("to_x", 0.0)) * k
+	# เติมชั้น
+	var floors: Array = d.get("floors", [])
+	var warps: Array = d.get("warps", [])
+	var want: int = MIN_FLOORS[t] if t < MIN_FLOORS.size() else 3
+	var pool: Array = MORE_FLOORS.get(t, [])
+	var main_half: float = float((floors[0] as Dictionary).get("half", d["half"])) if not floors.is_empty() else float(d["half"])
+	var j := 0
+	while floors.size() < want and j < pool.size():
+		var e: Array = pool[j]
+		var idx := floors.size()
+		var fh := MORE_HALF * k
+		floors.append({"name": str(e[0]), "y": float(e[2]), "half": fh, "deco": str(e[1])})
+		var wx := _free_x(d, 0, main_half, j)
+		var back := -fh + 4.0
+		warps.append({"from": 0, "x": wx, "to": idx, "to_x": back + 2.5, "kind": str(e[3])})
+		warps.append({"from": idx, "x": back, "to": 0, "to_x": wx, "kind": str(e[3])})
+		j += 1
+	d["floors"] = floors
+	d["warps"] = warps
+	_made[t] = d
+	return d
+
+## ตำแหน่งว่างบนชั้นสำหรับทางวาร์ปใหม่ ห่างจาก NPC ป้าย และวาร์ปอื่นอย่างน้อย 3 หน่วย
+static func _free_x(d: Dictionary, fl: int, half: float, nth: int) -> float:
+	var taken := []
+	for n in d.get("npcs", []):
+		if int(n.get("floor", 0)) == fl:
+			taken.append(float(n["x"]))
+	for key in ["board", "mailbox", "dungeon_gate"]:
+		var p: Dictionary = d.get(key, {})
+		if not p.is_empty() and int(p.get("floor", 0)) == fl:
+			taken.append(float(p["x"]))
+	for w in d.get("warps", []):
+		if int(w.get("from", 0)) == fl:
+			taken.append(float(w["x"]))
+	var cands := [-0.82, 0.55, -0.45, 0.85, 0.2, -0.65, 0.7, -0.2]
+	for c0 in range(cands.size()):
+		var c: float = float(cands[(c0 + nth) % cands.size()]) * (half - 4.0)
+		var ok := true
+		for x in taken:
+			if absf(float(x) - c) < 3.0:
+				ok = false
+				break
+		if ok:
+			return c
+	return -half + 6.0 + float(nth) * 5.0
 
 static func npc(id: String) -> Dictionary:
 	for t in TOWNS.size():
-		for n in (TOWNS[t] as Dictionary).get("npcs", []):
+		for n in (town(t) as Dictionary).get("npcs", []):
 			if str(n["id"]) == id:
 				var d: Dictionary = (n as Dictionary).duplicate()
 				d["town"] = t

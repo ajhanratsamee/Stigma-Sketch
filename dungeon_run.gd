@@ -103,8 +103,8 @@ func _draw() -> void:
 	var stage := "บอส" if wave >= waves() else "คลื่น %d / %d" % [maxi(wave + 1, 1), waves()]
 	_text(Vector2(view.x * 0.5, 72.0), stage, 22, Sketch.INK)
 	if _flash_t > 0.0 and result == "":
-		_text(Vector2(view.x * 0.5, view.y * 0.32), _flash, 48, Color(0.75, 0.2, 0.2, minf(_flash_t * 2.0, 1.0)))
+		_text(Vector2(view.x * 0.5, view.y * 0.32), _flash, 48, Color(0.74, 0.42, 0.4, minf(_flash_t * 2.0, 1.0)))
 	if result == "win":
-		_text(Vector2(view.x * 0.5, view.y * 0.36), "ผ่านดันเจี้ยน!", BANNER_SIZE, Color(0.85, 0.55, 0.1))
+		_text(Vector2(view.x * 0.5, view.y * 0.36), "ผ่านดันเจี้ยน!", BANNER_SIZE, Color(0.82, 0.6, 0.35))
 	elif result == "lose":
 		_text(Vector2(view.x * 0.5, view.y * 0.36), "พ่ายแพ้...", BANNER_SIZE, Color(0.4, 0.4, 0.5))

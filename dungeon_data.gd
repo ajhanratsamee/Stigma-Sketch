@@ -70,7 +70,10 @@ const THEME_WORDS := {"meadow": "ทุ่งหญ้า", "forest": "ป่า
 	"crater": "ปากปล่อง", "lavatunnel": "อุโมงค์ลาวา", "library": "ห้องสมุด", "cells": "คุกใต้ปราสาท", "rooftop": "หลังคาปราสาท",
 	"cloudgarden": "สวนเมฆ", "skytemple": "วิหารฟ้า",
 	"train": "รถไฟ", "underwater": "ใต้ทะเล", "airship": "เรือเหาะ", "minecart": "รางรถแร่", "kitchen": "ครัวยักษ์",
-	"toybox": "ห้องของเล่น", "waterfall": "น้ำตก", "cattree": "ป่าคอนโดแมว", "nightmarket": "ตลาดโคม"}
+	"toybox": "ห้องของเล่น", "waterfall": "น้ำตก", "cattree": "ป่าคอนโดแมว", "nightmarket": "ตลาดโคม",
+	"metro": "สถานีใต้ดิน", "cellar": "ห้องใต้ดิน", "mushcave": "อุโมงค์เห็ดเรือง", "sewer": "อุโมงค์ทางน้ำ", "duskroof": "หลังคายามเย็น",
+	"cloudisle": "เกาะเมฆ", "bamboo": "ป่าไผ่", "snowpass": "ช่องเขาหิมะ", "desertruin": "ซากซุ้มทราย", "toyfactory": "โรงงานของเล่น",
+	"clocktower": "หอนาฬิกา", "pier": "สะพานท่าเรือ", "candy": "ดินแดนขนม", "mansion": "คฤหาสน์ผีน้อย"}
 const BOSSES := ["boss_club", "boss_spear", "boss_hammer", "boss_scythe", "boss_king"]
 
 static func town_name(town: int) -> String:
@@ -164,14 +167,15 @@ static func _made(town: int, index: int) -> Dictionary:
 		text = str(named[nth][1])
 	var x := 0.08 + 0.84 * float(index) / float(maxi(n - 1, 1))
 	var y := 0.3 if index % 2 == 0 else 0.66
-	# ฉากที่วาดจริงตามธีมเมือง (ชื่อยังอ้างฉากพื้นฐาน)
-	var look := DungeonLook.for_town(town, theme)
-	# ดันพิเศษแบบเคลื่อนไหว (รถไฟ ใต้ทะเล ฯลฯ) แทนบางลำดับ ชื่อเปลี่ยนตาม
-	var ex := DungeonLook.extra(town, index)
+	# ฉากที่วาดจริง: รายการฉากของเมืองตามลำดับดัน (ไม่ซ้ำกันในเมือง)
+	var look := DungeonLook.for_dungeon(town, index, theme)
+	var ex := DungeonLook.extra_for(town, look)
 	if not ex.is_empty():
-		look = str(ex[0])
 		name = str(ex[1])
 		text = str(ex[2])
+	elif look != DungeonLook.for_town(town, theme) or nth >= named.size():
+		name = "%s%s" % [THEME_WORDS.get(look, THEME_WORDS[theme]), word]
+		text = str(DungeonLookMore.BLURB.get(look, "ดันเจี้ยนรอบ%s" % town_name(town)))
 	return {"name": name, "icon": look, "theme": look, "base": theme, "map": Vector2(x, y + 0.04 * sin(float(index) * 1.7)),
 		"text": text,
 		"boss": BOSSES[(index + town) % BOSSES.size()]}
@@ -182,12 +186,12 @@ static func _made(town: int, index: int) -> Dictionary:
 const FODDER := ["cat_mochi", "cat_mochi", "cat_mochi", "cat_ghost", "cat_mochi"]
 const MID := ["cat_mochi", "cat_long", "cat_box", "cat_ghost", "cat_puff"]
 
-## ห้องยาว มอนกระจายห่างๆ ไม่ลายตา เมืองแรกมอนน้อยสุดและห้องยาวสุด
+## ห้องยาวมาก (ราว 2 เท่าครึ่งของเดิม) มอนกระจายห่างๆ ไม่ลายตา เมืองแรกมอนน้อยสุด
 static func room_half(town: int) -> float:
-	return 52.0 if town == 0 else 44.0
+	return 110.0 if town == 0 else 100.0
 
 static func _density(town: int) -> float:
-	return 0.5 if town == 0 else 0.7
+	return 0.6 if town == 0 else 0.85
 
 ## จำนวนตัวหลังคูณความหนาแน่น อย่างน้อย 1
 static func _n(base: int, town: int) -> int:
@@ -205,17 +209,53 @@ static func _spread(list: Array, x0: float, x1: float) -> Array:
 		ground[i][2] = lerpf(x0, x1, t)
 	return list
 
-## แท่นลอยกระจายตลอดห้องยาว ต่ำเป็นหลัก มีสูงบ้าง
-static func _plats(h: float) -> Array:
+## จำนวนชั้นแท่นเหนือพื้น เมืองแรก 2 (รวมพื้นเป็น 3 ชั้น) เมือง 2-4 มี 3 ชั้น เมืองหลังจากนั้น 4 ชั้น (รวม 5)
+static func tiers(town: int) -> int:
+	return 2 if town == 0 else (3 if town <= 3 else 4)
+
+const TIER_STEP := 1.625     # แต่ละชั้นสูงกว่าชั้นล่างเท่านี้ กระโดดถึง (ค่าลงตัวฐานสอง ไม่เพี้ยนตอนเก็บใน Vector2)
+const TIER_BASE := 1.75
+const CLUSTER_GAP := 24.0     # กลุ่มแท่นแบบบันไดห่างกันเท่านี้
+
+## แท่นลอยแบบบันไดหลายชั้นกระจายทั้งห้อง กระโดดไต่ขึ้นได้ทีละชั้น บางกลุ่มมีสะพานยาวชั้นสอง
+## [x ซ้าย, x ขวา, สูง]  ชั้นบนเหลื่อมกับชั้นล่างนิดหน่อย ยืนปลายแท่นแล้วกระโดดขึ้นได้
+static func _plats(h: float, n_tiers := 2) -> Array:
 	var out := []
-	var x := -h + 10.0
+	var x := -h + 12.0
 	var k := 0
-	while x < h - 10.0:
-		out.append([x, x + 4.0, 1.8])
-		if k % 3 == 1:
-			out.append([x + 5.5, x + 8.5, 3.4])
-		x += 15.0
+	while x < h - 14.0:
+		var dir := 1.0 if k % 2 == 0 else -1.0
+		var top := n_tiers if k % 3 != 2 else maxi(1, n_tiers - 1)
+		for t in top:
+			var w := 5.0 - float(t) * 0.35
+			var o := float(t) * 3.6
+			var x0 := x + o if dir > 0.0 else x + 3.6 * float(n_tiers - 1) - o
+			out.append([x0, x0 + w, TIER_BASE + float(t) * TIER_STEP])
+		# สะพานยาวชั้นสองไปหากลุ่มถัดไป
+		if n_tiers >= 2 and k % 2 == 1 and x + CLUSTER_GAP < h - 14.0:
+			out.append([x + 9.0, x + 19.0, TIER_BASE + TIER_STEP])
+		x += CLUSTER_GAP
 		k += 1
+	return out
+
+## แท่นชั้นบน (ไม่ใช่ชั้นล่างสุด) เรียงตาม x ใช้วางมอนบนชั้นสูง
+static func _upper(plats: Array) -> Array:
+	var out := []
+	for i in plats.size():
+		if float(plats[i][2]) > TIER_BASE + 0.5:
+			out.append(i)
+	out.sort_custom(func(a, b) -> bool: return float(plats[a][0]) < float(plats[b][0]))
+	return out
+
+## เลือกแท่นชั้นบน n อันกระจายทั่วห้อง
+static func _pick_upper(plats: Array, n: int, salt := 0) -> Array:
+	var up := _upper(plats)
+	var out := []
+	if up.is_empty() or n <= 0:
+		return out
+	for i in n:
+		var k := clampi(int(floor((float(i) + 0.5 + float(salt) * 0.37) / float(n) * float(up.size()))), 0, up.size() - 1)
+		out.append(up[k])
 	return out
 
 static func rooms(town: int, index: int) -> Array:
@@ -225,49 +265,61 @@ static func rooms(town: int, index: int) -> Array:
 	var fod: String = FODDER[(index + town) % FODDER.size()]
 	var more := mini(index, 6)  # ดันลึกเพิ่มมอน
 	var h := room_half(town)
-	var plats := _plats(h)
+	var nt := tiers(town)
+	var plats := _plats(h, nt)
+	var up_n := 2 + mini(town, 3)   # มอนบนชั้นสูงต่อระลอก
 	var out := []
-	# ห้อง 1 วอร์มอัพ ตัวเล็กเลือดน้อย กระจายทั้งห้อง
+	# ห้อง 1 วอร์มอัพ ตัวเล็กเลือดน้อย กระจายทั้งห้อง มีบนแท่นบ้าง
 	var w1 := []
-	for i in _n(7 + more, town):
+	for i in _n(9 + more, town):
 		w1.append(["hopper", fod, 0.0, -1])
-	out.append({"type": "warm", "half": h, "waves": [_spread(w1, -h + 12.0, h - 6.0)], "platforms": [], "spikes": []})
-	# ห้อง 2 ต่อสู้หลัก แทงค์ ซัพพอร์ต ตัวยิงบนแท่นแค่ตัวเดียว ระลอกสองตัวพุ่งชน
-	var a1 := [["tank", "cat_box", 0.0, -1], ["support", "cat_long", 0.0, -1], ["ranged", "cat_cyclops", 0.0, 1]]
+	for p in _pick_upper(plats, up_n, 0):
+		w1.append(["hopper", fod, 0.0, p])
+	out.append({"type": "warm", "half": h, "waves": [_spread(w1, -h + 14.0, h - 8.0)], "platforms": plats, "spikes": []})
+	# ห้อง 2 ต่อสู้หลัก แทงค์ ซัพพอร์ต ตัวยิงบนแท่นสูง ระลอกสองตัวพุ่งชน
+	var core_up := _pick_upper(plats, up_n + 1, 1)
+	var a1 := [["tank", "cat_box", 0.0, -1], ["support", "cat_long", 0.0, -1], ["tank", "cat_box", 0.0, -1]]
 	if town > 0:
 		a1.append(["tank", "cat_box", 0.0, -1])
-	for i in _n(4 + more, town):
+	for i in _n(6 + more, town):
 		a1.append(["hopper", fod, 0.0, -1])
-	var a2 := [["rusher", "cat_puff", 0.0, -1], ["rusher", "cat_puff", 0.0, -1]]
-	for i in _n(3 + more, town):
+	for i in core_up.size():
+		a1.append(["ranged" if i % 2 == 0 else "hopper", "cat_cyclops" if i % 2 == 0 else fod, 0.0, core_up[i]])
+	var a2 := [["rusher", "cat_puff", 0.0, -1], ["rusher", "cat_puff", 0.0, -1], ["rusher", "cat_puff", 0.0, -1]]
+	for i in _n(5 + more, town):
 		a2.append(["hopper", fod, 0.0, -1])
-	out.append({"type": "core", "half": h, "waves": [_spread(a1, -h + 12.0, h - 6.0), _spread(a2, -h + 20.0, h - 4.0)], "platforms": plats, "spikes": []})
-	# ห้อง 3 กับดักหนาม ต้องหลบไปพร้อมสู้ หนามกระจายตามห้อง
-	var t1 := [["ranged", "cat_ghost", 0.0, 3], ["tank", "cat_box", 0.0, -1]]
-	for i in _n(4 + more, town):
+	out.append({"type": "core", "half": h, "waves": [_spread(a1, -h + 14.0, h - 8.0), _spread(a2, -h + 22.0, h - 6.0)], "platforms": plats, "spikes": []})
+	# ห้อง 3 กับดักหนาม ต้องหลบไปพร้อมสู้ หนามกระจายตามห้อง ตัวยิงผีบนแท่นสูง
+	var t1 := [["tank", "cat_box", 0.0, -1], ["tank", "cat_box", 0.0, -1]]
+	for p in _pick_upper(plats, up_n, 2):
+		t1.append(["ranged", "cat_ghost", 0.0, p])
+	for i in _n(6 + more, town):
 		t1.append(["hopper", fod, 0.0, -1])
-	var t2 := [["rusher", "cat_puff", 0.0, -1], ["support", "cat_long", 0.0, -1]]
-	for i in _n(2 + more, town):
+	var t2 := [["rusher", "cat_puff", 0.0, -1], ["support", "cat_long", 0.0, -1], ["rusher", "cat_puff", 0.0, -1]]
+	for i in _n(4 + more, town):
 		t2.append(["hopper", fod, 0.0, -1])
 	var spikes := []
-	var sx := -h + 16.0
-	while sx < h - 8.0:
+	var sx := -h + 18.0
+	while sx < h - 10.0:
 		spikes.append(sx)
-		sx += 18.0
-	out.append({"type": "trap", "half": h, "waves": [_spread(t1, -h + 12.0, h - 6.0), _spread(t2, -h + 20.0, h - 4.0)], "platforms": plats, "spikes": spikes})
-	# ห้อง 4 มินิบอส เลือดเยอะ เกราะหนา ท่าง่าย มีลูกน้องนิดหน่อย
-	var mh := h * 0.6
+		sx += 22.0
+	out.append({"type": "trap", "half": h, "waves": [_spread(t1, -h + 14.0, h - 8.0), _spread(t2, -h + 22.0, h - 6.0)], "platforms": plats, "spikes": spikes})
+	# ห้อง 4 มินิบอส ลานยาวครึ่งหนึ่ง เลือดเยอะ เกราะหนา มีลูกน้องกระจาย แท่นบันไดไว้หลบ
+	var mh := h * 0.5
+	var mplats := _plats(mh, mini(nt, 3))
 	var m1 := [["midboss", MID[(index + town) % MID.size()], 8.0, -1]]
-	for i in _n(3 + more, town):
-		m1.append(["hopper", fod, -mh + 10.0 + float(i) * 6.0, -1])
-	out.append({"type": "mid", "half": mh, "waves": [m1], "platforms": [[-12.0, -8.0, 1.8], [14.0, 18.0, 1.8]], "spikes": []})
+	for i in _n(4 + more, town):
+		m1.append(["hopper", fod, -mh + 10.0 + float(i) * 9.0, -1])
+	for p in _pick_upper(mplats, 2, 3):
+		m1.append(["hopper", fod, 0.0, p])
+	out.append({"type": "mid", "half": mh, "waves": [m1], "platforms": mplats, "spikes": []})
 	# ห้อง 5 บอส ลานกว้าง ไม่มีลูกน้อง มีแท่นไว้หลบท่าใหญ่ทั้งลาน
 	var boss_look := str(d.get("boss", "boss_club"))
 	if not raid(town, index).is_empty():
 		# บอสยักษ์แบบรุม ยืนนิ่งชิดขวาหรือกลางลาน แท่นสองข้างไว้หลบของตกกับแขนกวาด
 		out.append({"type": "boss", "raid": true, "waves": [[["boss_raid", boss_look, 12.0, -1]]], "platforms": [[-14.0, -10.0, 1.8], [-4.0, 0.0, 1.8]], "spikes": []})
 		return out
-	out.append({"type": "boss", "waves": [[[boss_look, boss_look, 6.0, -1]]], "platforms": [[-13.0, -9.0, 1.8], [9.0, 13.0, 1.8]], "spikes": []})
+	out.append({"type": "boss", "waves": [[[boss_look, boss_look, 6.0, -1]]], "platforms": [[-13.0, -9.0, 1.8], [9.0, 13.0, 1.8], [-2.0, 2.0, 3.5]], "spikes": []})
 	return out
 
 ## บอสยักษ์แบบรุม: ดันสุดท้ายของเมืองตั้งแต่เมือง 3 (town 2) และดันเลขคี่ของเมืองโหด (town 4 ขึ้นไป)

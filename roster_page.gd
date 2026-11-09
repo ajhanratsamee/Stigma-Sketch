@@ -15,8 +15,8 @@ const TITLE_AT := Vector2(80.0, 72.0)
 const TITLE_SIZE := UiStyle.TITLE
 const NAME_SIZE := 30
 const CLASS_SIZE := 22
-const LINE := UiStyle.LINE
-const LINE_BOLD := UiStyle.LINE_BOLD + 1.0
+const LINE := UiStyle.SOFT_LINE
+const LINE_BOLD := UiStyle.SOFT_LINE_BOLD
 const PLUS_SIZE := 90
 const PLAY_SIZE := Vector2(300.0, 84.0)
 const DEL_SIZE := Vector2(200.0, 70.0)
@@ -25,7 +25,10 @@ const BUTTON_Y := 0.9
 const BUTTON_TEXT := UiStyle.BUTTON
 const ARROW_R := 40.0
 const NAMES := {"cat": "CAT BOYS", "mage": "CAT SUSI", "bow": "CAT MATCHA", "spear": "CAT CITRUS", "azure": "CAT AZURE & LAPIS", "fist": "CAT ASH"}
-const ERASE := Color(0.8, 0.2, 0.15)
+const ERASE := UiStyle.SOFT_WARN
+const INK := UiStyle.SOFT_TEXT
+const DIM := UiStyle.SOFT_DIM
+const GAME_NAME := "แมวมั้ย"
 
 var list: Array = []
 var page := 0
@@ -193,7 +196,23 @@ func dialog_no_rect() -> Rect2:
 	var d := dialog_rect()
 	return Rect2(Vector2(d.get_center().x - 240.0, d.end.y - 110.0), Vector2(220.0, 80.0))
 
+var _settings: SettingsPanel
+
+## ปุ่มตั้งค่า (เฟือง) ซ้ายของชื่อเกมมุมขวาบน
+func settings_center() -> Vector2:
+	var gw := Sketch.font().get_string_size(GAME_NAME, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 34).x
+	return Vector2(_view.x - 80.0 - gw - 56.0, TITLE_AT.y - 14.0)
+
+func open_settings() -> void:
+	if _settings == null:
+		_settings = SettingsPanel.new()
+		add_child(_settings)
+	_settings.open()
+
 func tap(at: Vector2) -> void:
+	if at.distance_to(settings_center()) <= 36.0 and not confirm_delete:
+		open_settings()
+		return
 	# หน้าต่างถามยืนยันลบเปิดอยู่ แตะได้แค่ปุ่มในหน้าต่าง แตะนอกหน้าต่างคือยกเลิก
 	if confirm_delete:
 		if dialog_yes_rect().has_point(at):
@@ -250,20 +269,33 @@ func _input(event: InputEvent) -> void:
 				_last_tap_slot = slot
 		tap(event.position)
 
-func _box(r: Rect2, seed_no: int, width: float, color := Sketch.INK) -> void:
+func _box(r: Rect2, seed_no: int, width: float, color := UiStyle.SOFT_INK) -> void:
 	if r.size.y < 100.0:
-		UiStyle.fill(self, r)
+		UiStyle.fill(self, r, UiStyle.SOFT_CARD)
 	UiStyle.frame(self, r, seed_no, width, color)
 
-func _text(at: Vector2, word: String, size: int, color := Sketch.INK) -> void:
+func _text(at: Vector2, word: String, size: int, color := INK) -> void:
 	var font := Sketch.font()
 	var w := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size).x
 	draw_string(font, at + Vector2(-w * 0.5, float(size) * 0.36), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size, color)
 
 func _draw() -> void:
-	draw_string(Sketch.font(), TITLE_AT, TITLE, HORIZONTAL_ALIGNMENT_LEFT, -1.0, TITLE_SIZE, Sketch.INK)
+	draw_string(Sketch.font(), TITLE_AT, TITLE, HORIZONTAL_ALIGNMENT_LEFT, -1.0, TITLE_SIZE, INK)
 	var count := "%d / %d" % [list.size(), SaveData.ROSTER_MAX]
-	draw_string(Sketch.font(), TITLE_AT + Vector2(260.0, 0.0), count, HORIZONTAL_ALIGNMENT_LEFT, -1.0, CLASS_SIZE, TouchPad.EMPTY_RING)
+	draw_string(Sketch.font(), TITLE_AT + Vector2(260.0, 0.0), count, HORIZONTAL_ALIGNMENT_LEFT, -1.0, CLASS_SIZE, UiStyle.SOFT_INK)
+	# ชื่อเกมมุมขวาบน เบาๆ
+	var gw := Sketch.font().get_string_size(GAME_NAME, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 34).x
+	draw_string(Sketch.font(), Vector2(_view.x - 80.0 - gw, TITLE_AT.y - 4.0), GAME_NAME, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 34, UiStyle.SOFT_ACCENT)
+	# เฟืองตั้งค่า
+	var sc := settings_center()
+	draw_circle(sc, 28.0, UiStyle.SOFT_CARD)
+	draw_arc(sc, 28.0, 0.0, TAU, 32, UiStyle.SOFT_INK, 2.4, true)
+	var gpts := PackedVector2Array()
+	for gi in 33:
+		var ga := TAU * float(gi) / 32.0
+		gpts.append(sc + Vector2(cos(ga), sin(ga)) * (14.0 if floori(float(gi) / 2.0) % 2 == 0 else 10.0))
+	draw_polyline(gpts, UiStyle.SOFT_INK, 2.4, true)
+	draw_arc(sc, 4.5, 0.0, TAU, 16, UiStyle.SOFT_INK, 2.2, true)
 	for slot in PER_PAGE:
 		var i := index_at(slot)
 		if i < 0:
@@ -273,16 +305,16 @@ func _draw() -> void:
 			# การ์ดสร้างตัวใหม่
 			if list.size() >= SaveData.ROSTER_MAX:
 				continue
-			UiStyle.fill(self, box, Color(1.0, 1.0, 1.0, 0.55))
-			_box(box, 600 + slot, LINE, TouchPad.EMPTY_RING)
-			_text(box.get_center() + Vector2(0.0, -30.0), "+", PLUS_SIZE)
-			_text(box.get_center() + Vector2(0.0, 60.0), "สร้างตัวละคร", NAME_SIZE)
+			UiStyle.fill(self, box, Color(UiStyle.SOFT_CARD, 0.5))
+			_box(box, 600 + slot, LINE, DIM)
+			_text(box.get_center() + Vector2(0.0, -30.0), "+", PLUS_SIZE, UiStyle.SOFT_INK)
+			_text(box.get_center() + Vector2(0.0, 60.0), "สร้างตัวละคร", NAME_SIZE, UiStyle.SOFT_INK)
 			continue
 		var entry: Dictionary = list[i]
-		UiStyle.fill(self, box, UiStyle.PICKED if i == selected else UiStyle.PAPER)
+		UiStyle.fill(self, box, UiStyle.SOFT_PICK if i == selected else UiStyle.SOFT_CARD)
 		if i == selected:
-			UiStyle.paw(self, box.position + Vector2(box.size.x - 26.0, 26.0), 18.0)
-		_box(box, 600 + slot, LINE_BOLD if i == selected else LINE)
+			UiStyle.paw(self, box.position + Vector2(box.size.x - 26.0, 26.0), 18.0, Color(UiStyle.SOFT_ACCENT, 0.7))
+		_box(box, 600 + slot, LINE_BOLD if i == selected else LINE, UiStyle.SOFT_ACCENT if i == selected else UiStyle.SOFT_INK)
 		var weapon := str(entry.get("weapon", "cat"))
 		var cls := str(entry.get("class", ""))
 		_text(Vector2(box.get_center().x, box.position.y + FEET_DOWN + 45.0), NAMES.get(weapon, weapon), NAME_SIZE)
@@ -291,38 +323,36 @@ func _draw() -> void:
 		for side in [-1, 1]:
 			var c := arrow_center(side)
 			var on: bool = (side < 0 and page > 0) or (side > 0 and page < pages() - 1)
-			var color := Sketch.INK if on else TouchPad.EMPTY_RING
+			var color := UiStyle.SOFT_INK if on else DIM
 			Sketch.line(self, PackedVector2Array([c + Vector2(-side * 12.0, -22.0), c + Vector2(side * 12.0, 0.0), c + Vector2(-side * 12.0, 22.0)]), 620 + side, LINE_BOLD * 0.7, Sketch.WOBBLE, color)
 	var has := selected >= 0
-	var play_color := Sketch.INK if has else TouchPad.EMPTY_RING
-	_box(play_rect(), 630, LINE_BOLD * 0.6, play_color)
-	_text(play_rect().get_center(), "เล่น", BUTTON_TEXT, play_color)
+	UiStyle.soft_button(self, play_rect(), "เล่น", 630, has, true)
 	var room := list.size() < SaveData.ROSTER_MAX
-	var create_color := Sketch.INK if room else TouchPad.EMPTY_RING
-	_box(create_rect(), 632, LINE_BOLD * 0.6, create_color)
-	_text(create_rect().get_center(), "สร้างตัวละคร" if room else "คลังเต็ม", BUTTON_TEXT, create_color)
-	var del_color := Sketch.INK if has else TouchPad.EMPTY_RING
-	_box(delete_rect(), 631, LINE, del_color)
+	UiStyle.soft_button(self, create_rect(), "สร้างตัวละคร" if room else "คลังเต็ม", 632, room)
+	var del_color := ERASE if has else DIM
+	UiStyle.fill(self, delete_rect(), Color(UiStyle.SOFT_CARD, 0.85 if has else 0.6))
+	UiStyle.frame(self, delete_rect(), 631, LINE, del_color)
 	_text(delete_rect().get_center(), "ลบ", BUTTON_TEXT - 6, del_color)
 
 ## หน้าต่างถามยืนยันก่อนลบ บอกชื่อและคลาสของตัวที่จะลบ
 func _draw_dialog() -> void:
 	if selected < 0 or selected >= list.size():
 		return
-	_dialog.draw_rect(Rect2(Vector2.ZERO, _view), Color(1.0, 0.98, 0.94, 0.7))
+	_dialog.draw_rect(Rect2(Vector2.ZERO, _view), Color(UiStyle.SOFT_BG, 0.75))
 	var d := dialog_rect()
-	UiStyle.fill(_dialog, d, Color.WHITE)
-	_dbox(d, 640, LINE_BOLD * 0.7, Sketch.INK)
+	UiStyle.fill(_dialog, d, UiStyle.SOFT_CARD)
+	_dbox(d, 640, LINE_BOLD, UiStyle.SOFT_INK)
 	var entry: Dictionary = list[selected]
 	var weapon := str(entry.get("weapon", "cat"))
 	var cls := str(entry.get("class", ""))
-	_dtext(Vector2(d.get_center().x, d.position.y + 70.0), "ลบตัวละครนี้ใช่ไหม?", 38, Sketch.INK)
-	_dtext(Vector2(d.get_center().x, d.position.y + 135.0), "%s  %s" % [NAMES.get(weapon, weapon), cls if cls != "" else "BASIC"], 28, Sketch.INK)
+	_dtext(Vector2(d.get_center().x, d.position.y + 70.0), "ลบตัวละครนี้ใช่ไหม?", 38, INK)
+	_dtext(Vector2(d.get_center().x, d.position.y + 135.0), "%s  %s" % [NAMES.get(weapon, weapon), cls if cls != "" else "BASIC"], 28, INK)
 	_dtext(Vector2(d.get_center().x, d.position.y + 180.0), "ลบแล้วกู้คืนไม่ได้", 22, ERASE)
-	_dbox(dialog_no_rect(), 641, LINE, Sketch.INK)
-	_dtext(dialog_no_rect().get_center(), "ยกเลิก", 32, Sketch.INK)
-	UiStyle.fill(_dialog, dialog_yes_rect(), Color(1.0, 0.92, 0.9))
-	_dbox(dialog_yes_rect(), 642, LINE_BOLD * 0.6, ERASE)
+	UiStyle.fill(_dialog, dialog_no_rect(), Color.WHITE)
+	_dbox(dialog_no_rect(), 641, LINE, UiStyle.SOFT_INK)
+	_dtext(dialog_no_rect().get_center(), "ยกเลิก", 32, INK)
+	UiStyle.fill(_dialog, dialog_yes_rect(), Color(0.97, 0.9, 0.88))
+	_dbox(dialog_yes_rect(), 642, LINE_BOLD, ERASE)
 	_dtext(dialog_yes_rect().get_center(), "ลบ", 32, ERASE)
 
 func _dbox(r: Rect2, seed_no: int, width: float, color: Color) -> void:

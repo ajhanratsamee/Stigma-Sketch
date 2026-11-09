@@ -3,22 +3,24 @@ extends Node2D
 ## หลอดเลือดกับหลอดมานา มุมซ้ายบน อยู่ในการ์ดพื้นกระดาษขอบหมึก ไม่กลืนกับฉาก ดูชัดไม่ลายตา
 ## ใต้การ์ดมีไอคอนบัพ (ขอบเขียว) และดีบัพ (ขอบแดง) พร้อมวินาทีที่เหลือ
 
-const AT := Vector2(40.0, 66.0)          # เว้นที่ด้านบนให้ชื่อตัวละครกับชื่อสาย
-const SIZE := Vector2(400.0, 30.0)
-const GAP := 10.0
-const CARD_PAD := Vector2(14.0, 12.0)
-const LINE := 3.0
+const AT := Vector2(96.0, 46.0)          # การ์ดเลือดเล็ก อยู่ขวาวงเลเวลมุมซ้ายบน ชื่อตัวละครอยู่เหนือการ์ด
+const SIZE := Vector2(270.0, 24.0)
+const GAP := 6.0
+const CARD_PAD := Vector2(10.0, 8.0)
+const LV_AT := Vector2(46.0, 50.0)       # วงเลเวลมุมซ้ายบน
+const LV_R := 25.0
+const LINE := 2.4
 const SCRIBBLE := 1.0
-const TEXT_SIZE := 22
+const TEXT_SIZE := 19
 const TEXT_COLOR := Color.WHITE
-const TEXT_SHADOW := Color(0.0, 0.0, 0.0, 0.55)
-const HP_COLOR := Color(0.9, 0.16, 0.16)
-const MP_COLOR := Color(0.2, 0.45, 0.92)
-const CARD := Color(0.99, 0.97, 0.92)
+const TEXT_SHADOW := Color(0.3, 0.2, 0.2, 0.4)
+const HP_COLOR := Color(0.87, 0.39, 0.39)      # แดงนุ่ม ยังเห็นชัดว่าเลือด
+const MP_COLOR := Color(0.4, 0.56, 0.86)       # ฟ้านุ่ม
+const CARD := Color(0.975, 0.96, 0.94)
 const ICON_R := 22.0
 const ICON_GAP := 12.0
-const BUFF_RING := Color(0.25, 0.65, 0.3)
-const DEBUFF_RING := Color(0.85, 0.2, 0.2)
+const BUFF_RING := Color(0.42, 0.66, 0.46)
+const DEBUFF_RING := Color(0.8, 0.42, 0.4)
 ## [ตัวแปรเวลาใน Hero ชื่อสั้น สีไอคอน บัพหรือไม่]
 const EFFECTS := [
 	["plain_sa_t", "SA", Color(1.0, 0.55, 0.45), true],
@@ -106,7 +108,7 @@ func _process(delta: float) -> void:
 func _bar(at: Vector2, value: float, top: float, color: Color, word: String, seed_no: int) -> void:
 	# หลอดมุมมนแบบเดียวกับ UI หน้าอื่น
 	var rad := SIZE.y * 0.5
-	UiStyle.fill(self, Rect2(at, SIZE), Color(0.88, 0.86, 0.82), rad)
+	UiStyle.fill(self, Rect2(at, SIZE), Color(0.89, 0.86, 0.83), rad)
 	var ratio := clampf(value / top, 0.0, 1.0) if top > 0.0 else 0.0
 	if ratio > 0.0:
 		var fw := maxf(SIZE.x * ratio, SIZE.y)
@@ -128,9 +130,9 @@ func _draw_title(card: Rect2) -> void:
 	var cls := WalkPage.chosen_class if WalkPage.chosen_class != "" else "BASIC"
 	var word := "%s  ·  %s" % [name, cls]
 	var font := Sketch.font()
-	var at := Vector2(card.position.x + 4.0, card.position.y - 10.0)
-	draw_string_outline(font, at, word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 24, 7, Sketch.PAPER)
-	draw_string(font, at, word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 24, Sketch.INK)
+	var at := Vector2(card.position.x + 4.0, card.position.y - 7.0)
+	draw_string_outline(font, at, word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 20, 6, Sketch.PAPER)
+	draw_string(font, at, word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 20, Sketch.INK)
 
 func _draw() -> void:
 	if hero == null:
@@ -140,23 +142,22 @@ func _draw() -> void:
 	UiStyle.fill(self, Rect2(card.position + Vector2(4.0, 5.0), card.size), Color(0.0, 0.0, 0.0, 0.12))
 	UiStyle.box(self, card, 699, UiStyle.LINE, UiStyle.INK, CARD)
 	_bar(AT, hero.hp, hero.hp_max(), HP_COLOR, hp_text(), 700)
-	# วงกลมเลเวลตัวละครติดขวาการ์ด
-	var lc := Vector2(card.end.x + 38.0, card.get_center().y)
-	draw_circle(lc + Vector2(3.0, 4.0), 34.0, Color(0.0, 0.0, 0.0, 0.12))
-	draw_circle(lc, 34.0, Color(1.0, 0.86, 0.45))
-	var lring := Sketch.oval(lc, 34.0, 34.0, 32)
+	# วงกลมเลเวลเล็ก มุมซ้ายบน วง EXP รอบนอก
+	var lc := LV_AT
+	draw_circle(lc + Vector2(2.0, 3.0), LV_R, Color(0.0, 0.0, 0.0, 0.12))
+	draw_circle(lc, LV_R, Color(1.0, 0.86, 0.45))
+	var lring := Sketch.oval(lc, LV_R, LV_R, 28)
 	lring.append(lring[0])
-	Sketch.line(self, lring, 698, 3.5, SCRIBBLE)
-	# วง EXP รอบวงกลมเลเวล
-	draw_arc(lc, 41.0, 0.0, TAU, 40, Color(0.85, 0.82, 0.76), 7.0, true)
+	Sketch.line(self, lring, 698, 3.0, SCRIBBLE)
+	draw_arc(lc, LV_R + 6.0, 0.0, TAU, 36, Color(0.85, 0.82, 0.76), 5.0, true)
 	if exp_ratio > 0.0:
-		draw_arc(lc, 41.0, -PI * 0.5, -PI * 0.5 + TAU * exp_ratio, 40, Color(0.35, 0.78, 0.4), 7.0, true)
+		draw_arc(lc, LV_R + 6.0, -PI * 0.5, -PI * 0.5 + TAU * exp_ratio, 36, Color(0.35, 0.78, 0.4), 5.0, true)
 	var lf := Sketch.font()
-	var lw := lf.get_string_size("Lv", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16).x
-	draw_string(lf, lc + Vector2(-lw * 0.5, -10.0), "Lv", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16, Sketch.INK)
+	var lw := lf.get_string_size("Lv", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13).x
+	draw_string(lf, lc + Vector2(-lw * 0.5, -7.0), "Lv", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13, Sketch.INK)
 	var num := str(level)
-	var nw0 := lf.get_string_size(num, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30).x
-	draw_string(lf, lc + Vector2(-nw0 * 0.5, 22.0), num, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30, Sketch.INK)
+	var nw0 := lf.get_string_size(num, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22).x
+	draw_string(lf, lc + Vector2(-nw0 * 0.5, 15.0), num, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22, Sketch.INK)
 	if _notice_t > 0.0:
 		var mw := lf.get_string_size(_notice, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 24).x
 		var mp := Vector2(card.position.x, card.end.y + 90.0)
@@ -166,7 +167,7 @@ func _draw() -> void:
 	# ไอคอนบัพดีบัพใต้การ์ด
 	var font := Sketch.font()
 	var x := card.position.x + ICON_R
-	var y := card.end.y + 12.0 + ICON_R
+	var y := card.end.y + 74.0 + ICON_R   # ใต้แถบเป้าหมาย
 	for e in effects():
 		var c := Vector2(x, y)
 		draw_circle(c, ICON_R, Color.WHITE)

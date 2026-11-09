@@ -6,7 +6,34 @@ class_name TownScene
 const INK := Color(0.22, 0.18, 0.16)
 
 # ---------------------------------------------------------------- ท้องฟ้า
+const INDOOR := ["cellar", "kitchen", "hall", "library", "throne"]
+
+## ชั้นนี้อยู่ในอาคาร (ห้องใต้ดิน ครัว โถง ห้องสมุด ห้องบัลลังก์) ไม่เห็นฟ้า
+static func indoor(p) -> bool:
+	return p.has_method("floor_data") and str(p.floor_data().get("deco", "")) in INDOOR
+
+## ผนังห้องแทนท้องฟ้า โทนอุ่นนุ่ม ห้องใต้ดินมืดลงนิดแต่ไม่ดำ มีโคมวงแสงอุ่น
+static func _room_wall(c: Node2D, p) -> void:
+	var low: float = p._ground_y()
+	var deco := str(p.floor_data().get("deco", ""))
+	var wall: Color = (p.pal("wall") as Color).lerp(Color(0.86, 0.8, 0.74), 0.4)
+	if deco == "cellar":
+		wall = Color(0.6, 0.52, 0.48)
+	var top := wall.darkened(0.12)
+	for i in 12:
+		var k := float(i) / 11.0
+		c.draw_rect(Rect2(0.0, low * float(i) / 12.0, p._view.x, low / 12.0 + 1.0), top.lerp(wall, k))
+	c.draw_rect(Rect2(0.0, 0.0, p._view.x, low * 0.08), wall.darkened(0.2))
+	var x := 120.0
+	while x < p._view.x:
+		SoftPaint.oval(c, Vector2(x, low * 0.32), 70.0, 50.0, Color(1.0, 0.88, 0.64, 0.14), 0.6)
+		SoftPaint.oval(c, Vector2(x, low * 0.32), 14.0, 16.0, Color(1.0, 0.86, 0.6, 0.85), 0.4)
+		x += 420.0
+
 static func sky(c: Node2D, p) -> void:
+	if indoor(p):
+		_room_wall(c, p)
+		return
 	var low: float = p._ground_y()
 	var top: Color = p.pal("sky")
 	var bottom: Color = top.lerp(Color(1.0, 0.95, 0.88), 0.6)
@@ -31,6 +58,8 @@ static func sky(c: Node2D, p) -> void:
 		SoftPaint.oval(c, Vector2(p._view.x * 0.8, low * 0.3), 36.0, 36.0, Color(1.0, 1.0, 0.94), 0.3)
 
 static func clouds(c: Node2D, p) -> void:
+	if indoor(p):
+		return
 	if p.style == "underground":
 		# หยดคริสตัลเรืองแสงลอยช้าๆ แทนเมฆ
 		var col: Color = p.pal("accent")
@@ -60,6 +89,13 @@ static func clouds(c: Node2D, p) -> void:
 static func far(c: Node2D, p) -> void:
 	var span: float = p._span(TownPage.PAR_FAR)
 	var low: float = p._ground_y()
+	if indoor(p):
+		# ซุ้มโค้งผนังห้องจางๆ
+		var ax := -span
+		while ax < span:
+			SoftPaint.oval(c, Vector2(ax, low - 60.0), 70.0, 130.0, Color(0.0, 0.0, 0.0, 0.06), 0.4)
+			ax += 320.0
+		return
 	match p.style:
 		"harbor":
 			# ทะเลกว้าง เรือใบไกลๆ ประภาคาร
@@ -137,6 +173,8 @@ static func _ears_soft(c: CanvasItem, p, cx: float, top: float, gap: float, size
 
 # ---------------------------------------------------------------- ฉากกลาง (เงาอาคารใหญ่ ต้นไม้)
 static func mid(c: Node2D, p) -> void:
+	if indoor(p):
+		return
 	var span: float = p._span(TownPage.PAR_MID)
 	var low: float = p._ground_y() - 40.0
 	var x := -span

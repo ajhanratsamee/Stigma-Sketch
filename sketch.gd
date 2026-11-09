@@ -2,9 +2,9 @@ class_name Sketch
 extends RefCounted
 ## เส้นวาดมือ หยักน้อยๆ เลข seed เดิมได้รูปเดิม ภาพจึงไม่สั่นตอนวาดซ้ำ
 
-const INK := Color(0.16, 0.15, 0.14)
-const PAPER := Color(0.96, 0.95, 0.91)
-const WIDTH := 3.0
+const INK := Color(0.36, 0.31, 0.29)       # หมึกน้ำตาลเทานุ่ม (โทนหน้าโหลด แมวมั้ย)
+const PAPER := Color(0.975, 0.96, 0.94)
+const WIDTH := 2.5
 const WOBBLE := 0.7
 const STEP := 12.0
 const FONT := preload("res://fonts/Mali.ttf")

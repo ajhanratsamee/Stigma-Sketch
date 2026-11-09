@@ -238,6 +238,10 @@ func take_hit(h: Dictionary, dir: float) -> bool:
 	if state == "dead" or is_invulnerable():
 		return false
 	var t: String = h.get("type", "flinch")
+	var heavy_hit := t == "launch" or t == "knockdown" or t == "slam" or float(h.get("dmg", 0.0)) >= 80.0
+	Snd.hit(heavy_hit)
+	if heavy_hit:
+		Snd.buzz(15)
 	# ดาเมจล้วน ไม่ชะงัก ไม่เปลี่ยนสถานะ
 	if t == "none":
 		var quiet := _scaled_damage(h)
@@ -354,6 +358,7 @@ func _check_death() -> void:
 		hp = max_hp
 		return
 	state = "dead"
+	Snd.play("defeat", -3.0, 0.06)
 	hp = 0.0
 	kd_flight = false
 	tele_t = 0.0

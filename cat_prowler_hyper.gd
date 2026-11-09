@@ -200,12 +200,9 @@ func _fade() -> float:
 	return 1.0 - clampf((_t - CLOSE_AT) / 0.5, 0.0, 1.0)
 
 func _paw(c: Vector2, s: float, col: Color) -> void:
-	if s < 1.5 or col.a <= 0.0:
-		return
-	draw_circle(c + Vector2(0.0, s * 0.25), s * 0.55, col)
-	for i in 4:
-		var a := -2.45 + float(i) * 0.55
-		draw_circle(c + Vector2(cos(a), sin(a)) * s * 0.85 + Vector2(0.0, s * 0.15), s * 0.22, col)
+	# รอยเท้าแมวเป็นเม็ดกลมนุ่มแทน
+	draw_circle(c, s * 0.75, Color(col, col.a * 0.35 * 1.0))
+	draw_circle(c, s * 0.45, Color(col, col.a * 0.7 * 1.0))
 
 ## ด้านหลังตัวละคร: ออร่าทอง คลื่นคำราม 3 วง
 func _draw() -> void:

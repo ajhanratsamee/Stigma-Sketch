@@ -126,7 +126,7 @@ static func style_of(weapon: String, cls: String) -> Dictionary:
 				p = "bubble"
 			else:
 				a = Color(1.0, 0.92, 0.6)
-				p = "yarn"
+				p = "dot"
 		"azure":
 			b = Color(0.6, 0.82, 1.0)
 			a = Color(0.25, 0.35, 0.75)
@@ -134,7 +134,7 @@ static func style_of(weapon: String, cls: String) -> Dictionary:
 		"fist":
 			b = Color(0.7, 0.72, 0.78)
 			a = Color(1.0, 0.93, 0.78)
-			p = "fish"
+			p = "dot"
 	return {"base": b, "accent": a, "bits": p}
 
 static func _make(page: WalkPage, kind_name: String, look: Dictionary, kk: float, life_s: float) -> BigSkillFx:
@@ -203,9 +203,9 @@ func _ready() -> void:
 	var n := 0
 	match kind:
 		"cast":
-			n = int(10.0 + 12.0 * (k - 1.0) / 0.6)
+			n = int(4.0 + 3.0 * (k - 1.0) / 0.6)
 		"impact":
-			n = 4
+			n = 0
 		"decal":
 			n = 0
 	for i in n:
@@ -234,78 +234,43 @@ func _draw() -> void:
 func _ease(x: float) -> float:
 	return 1.0 - pow(1.0 - clampf(x, 0.0, 1.0), 3.0)
 
+## ตอนร่าย: แสงฟุ้งนุ่มวงเดียวค่อยๆ ขยายแล้วจาง อนุภาคไม่กี่เม็ดลอยขึ้นช้าๆ (ไม่มีเสาแสง ไม่มีวงซ้อน)
 func _draw_cast(u: float) -> void:
-	var fade := 1.0 - clampf((u - 0.55) / 0.45, 0.0, 1.0)
+	var fade := 1.0 - clampf((u - 0.5) / 0.5, 0.0, 1.0)
 	var mid := Vector2(0.0, -80.0)
-	# เสาแสงทรงแคปซูล จาง ปลายมน
-	var ph := 420.0 * k * _ease(u * 2.0)
-	var pw := 70.0 * k
-	for i in 3:
-		var ww := pw * (1.0 - float(i) * 0.3)
-		var col := Color(base if i < 2 else accent, (0.12 + 0.06 * float(i)) * fade)
-		draw_rect(Rect2(Vector2(-ww * 0.5, -ph), Vector2(ww, ph)), col)
-		draw_circle(Vector2(0.0, -ph), ww * 0.5, col)
-	# แสงฟุ้งรอบตัวหลายชั้นขยายออก
-	for i in 3:
-		var e := _ease(u * 1.6 - float(i) * 0.12)
-		if e <= 0.0:
-			continue
-		var r := (60.0 + 170.0 * e) * k * (1.0 + 0.18 * float(i))
-		draw_arc(mid, r, 0.0, TAU, 48, Color(base if i != 1 else accent, 0.75 * (1.0 - e) * fade), (10.0 - 2.5 * float(i)) * k * (1.0 - e) + 2.0, true)
-	draw_circle(mid, 90.0 * k * (0.6 + 0.4 * _ease(u * 3.0)), Color(base, 0.16 * fade))
-	# อนุภาคลอยวนออก
-	for s in _seeds:
-		var tt := clampf((_t - float(s[5])) / (life * 0.9), 0.0, 1.0)
+	var e := _ease(u * 1.4)
+	draw_circle(mid, (70.0 + 50.0 * e) * k, Color(base, 0.1 * fade))
+	draw_circle(mid, (40.0 + 30.0 * e) * k, Color(accent, 0.08 * fade))
+	draw_arc(mid, (60.0 + 110.0 * e) * k, 0.0, TAU, 48, Color(base, 0.35 * (1.0 - e) * fade), 3.0 * k, true)
+	for s2 in _seeds:
+		var tt := clampf((_t - float(s2[5])) / (life * 0.9), 0.0, 1.0)
 		if tt <= 0.0:
 			continue
-		var ang := float(s[0]) + tt * float(s[4])
-		var dist := float(s[1]) + float(s[2]) * _ease(tt) * k
-		var p := mid + Vector2(cos(ang) * dist, sin(ang) * dist * 0.6 - 120.0 * tt * k)
-		_bit(p, 14.0 * float(s[3]) * k, ang + tt * 4.0, 1.0 - tt)
+		var ang := float(s2[0]) + tt * float(s2[4]) * 0.4
+		var dist := float(s2[1]) + float(s2[2]) * 0.45 * _ease(tt) * k
+		var p := mid + Vector2(cos(ang) * dist, sin(ang) * dist * 0.5 - 70.0 * tt * k)
+		_bit(p, 10.0 * float(s2[3]) * k, ang, 0.55 * (1.0 - tt))
 
+## วงบนพื้น: วงรีจางวงเดียว ไม่มีตราอุ้งเท้า
 func _draw_decal(u: float) -> void:
-	var fade := 1.0 - clampf((u - 0.6) / 0.4, 0.0, 1.0)
-	var e := _ease(u * 2.2)
-	var rx := 230.0 * k * e
-	var ry := 52.0 * k * e
+	var fade := 1.0 - clampf((u - 0.5) / 0.5, 0.0, 1.0)
+	var e := _ease(u * 2.0)
+	var rx := 190.0 * k * e
+	var ry := 40.0 * k * e
 	if rx < 2.0:
 		return
-	var spin := _t * 1.6
-	for i in 2:
-		var pts := PackedVector2Array()
-		var rr := 1.0 - float(i) * 0.22
-		for j in 49:
-			var a := TAU * float(j) / 48.0
-			pts.append(Vector2(cos(a) * rx * rr, sin(a) * ry * rr))
-		draw_polyline(pts, Color(base if i == 0 else accent, 0.8 * fade), (6.0 - 2.0 * float(i)) * k, true)
-	# จุดกลมเรียงรอบวงหมุนช้าๆ
-	for j in 8:
-		var a := spin + TAU * float(j) / 8.0
-		draw_circle(Vector2(cos(a) * rx * 0.88, sin(a) * ry * 0.88), 6.0 * k, Color(accent, 0.8 * fade))
-	# ตราอุ้งเท้ากลางวง (แบนตามพื้น)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.32))
-	var pc := Color(base, 0.55 * fade)
-	draw_circle(Vector2(0.0, 18.0) * k, 40.0 * k * e, pc)
-	for t in 4:
-		var x := (float(t) - 1.5) * 32.0 * k * e
-		var y := (-40.0 - (10.0 if t == 1 or t == 2 else 0.0)) * k * e
-		draw_circle(Vector2(x, y), 15.0 * k * e, pc)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	var pts := PackedVector2Array()
+	for j in 49:
+		var a2 := TAU * float(j) / 48.0
+		pts.append(Vector2(cos(a2) * rx, sin(a2) * ry))
+	draw_polyline(pts, Color(base, 0.35 * fade), 3.0 * k, true)
 
+## ตอนโดน: วงนุ่มวงเดียว จางเร็ว
 func _draw_impact(u: float) -> void:
 	var e := _ease(u)
-	var a := 1.0 - u
-	for i in 3:
-		var r := (26.0 + 80.0 * e) * k * (1.0 + 0.25 * float(i))
-		draw_arc(Vector2.ZERO, r, 0.0, TAU, 32, Color(base if i != 1 else accent, 0.8 * a * (1.0 - 0.25 * float(i))), 6.0 * a + 1.5, true)
-	for i in 5:
-		var ang := TAU * float(i) / 5.0 + 0.4
-		var p := Vector2(cos(ang), sin(ang)) * 60.0 * e * k
-		draw_circle(p, (14.0 - 8.0 * e) * k, Color(1.0, 1.0, 1.0, 0.55 * a))
-	for s in _seeds:
-		var ang := float(s[0])
-		var p := Vector2(cos(ang), sin(ang)) * (30.0 + 90.0 * e) * k
-		_bit(p, 11.0 * float(s[3]) * k, ang + u * 3.0, a)
+	var a2 := 1.0 - u
+	draw_circle(Vector2.ZERO, (20.0 + 30.0 * e) * k, Color(base, 0.18 * a2))
+	draw_arc(Vector2.ZERO, (24.0 + 60.0 * e) * k, 0.0, TAU, 32, Color(base, 0.45 * a2), 3.0 * a2 + 1.0, true)
 
 ## อนุภาคแต่ละชนิด ทรงมนทั้งหมด
 func _bit(p: Vector2, s: float, rot: float, a: float) -> void:

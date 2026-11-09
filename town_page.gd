@@ -87,7 +87,7 @@ func _ready() -> void:
 	_town = TownData.town(current_town) if current_town < TownData.TOWNS.size() else {}
 	style = str(_town.get("style", "street"))
 	# ในเมืองโจมตีและใช้สกิลไม่ได้ ซ่อนปุ่มโจมตี ช่องสกิล HYPER
-	for id in ["z", "x", "hyper", "down", "s0", "s1", "s2", "s3"]:
+	for id in ["z", "x", "hyper", "swap", "down", "s0", "s1", "s2", "s3"]:
 		pad.buttons.erase(id)
 	pad.queue_redraw()
 	# หมอกจางๆ คลุมฉากทั้งหมด ฉากดูไกลขึ้น ตัวละครเด่น
@@ -317,11 +317,11 @@ func _draw_ui() -> void:
 	var tw := font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30).x
 	var c := Vector2(_view.x * 0.5 - 60.0, 50.0)
 	var rib := PackedVector2Array([c + Vector2(-tw * 0.5 - 50.0, -26.0), c + Vector2(tw * 0.5 + 50.0, -26.0), c + Vector2(tw * 0.5 + 32.0, 0.0), c + Vector2(tw * 0.5 + 50.0, 26.0), c + Vector2(-tw * 0.5 - 50.0, 26.0), c + Vector2(-tw * 0.5 - 32.0, 0.0)])
-	_ui.draw_colored_polygon(rib, Color(0.82, 0.24, 0.22))
+	_ui.draw_colored_polygon(rib, UiStyle.SOFT_PRIMARY)   # ริบบิ้นชื่อเมือง ชมพูฝุ่นนุ่ม
 	var rim := rib.duplicate()
 	rim.append(rib[0])
 	Sketch.line(_ui, rim, 702, 3.0, Sketch.WOBBLE, INK)
-	_ui.draw_string(font, c + Vector2(-tw * 0.5, 11.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30, Color(1.0, 0.95, 0.85))
+	_ui.draw_string(font, c + Vector2(-tw * 0.5, 11.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30, UiStyle.SOFT_TEXT)
 
 # ---------------------------------------------------------------- ฉาก
 func _ground_y() -> float:
@@ -887,7 +887,8 @@ func _build_npcs() -> void:
 		var npc := TownNpc.new()
 		npc.data = d
 		npc.page = self
-		npc.position = Vector2(float(d.get("x", 0.0)) * CombatData.UNIT, -ground_h(float(d.get("x", 0.0))) * CombatData.UNIT)
+		# NPC ยืนแถวหลังติดฉาก (หน้าบ้าน) ยกขึ้นจากทางเดิน วาดหลังตัวละคร ทางเดินโล่ง
+		npc.position = Vector2(float(d.get("x", 0.0)) * CombatData.UNIT, -ground_h(float(d.get("x", 0.0))) * CombatData.UNIT - TownNpc.back_lift())
 		world.add_child(npc)
 		world.move_child(npc, 1)
 		_npcs.append(npc)
@@ -899,7 +900,7 @@ func _curve_actors() -> void:
 			continue
 		var sx: float = float(n.data.get("x", 0.0)) * CombatData.UNIT * ZOOM
 		var phi := (sx - cam) / PLANET_R
-		n.position = Vector2((cam + PLANET_R * sin(phi)) / ZOOM, PLANET_R * (1.0 - cos(phi)) / ZOOM)
+		n.position = Vector2((cam + PLANET_R * sin(phi)) / ZOOM, PLANET_R * (1.0 - cos(phi)) / ZOOM) + Vector2(sin(phi), -cos(phi)) * TownNpc.back_lift()
 		n.rotation = phi
 
 ## ของที่กดใช้ได้บนชั้นนี้ [{kind x label up to to_x ...}]
@@ -1059,6 +1060,7 @@ func _act(it: Dictionary) -> void:
 			pad.visible = false
 			_ui.visible = false
 		"mailbox":
+			Snd.play("mail", -3.0)
 			if quests.has_method("open_mail"):
 				quests.call("open_mail")
 			else:
@@ -1066,8 +1068,10 @@ func _act(it: Dictionary) -> void:
 			pad.visible = false
 			_ui.visible = false
 		"gate":
+			Snd.play("door", -3.0)
 			open_map()
 		"warp":
+			Snd.play("warp", -4.0)
 			warp_to(int(it["to"]), float(it["to_x"]), bool(it["up"]))
 
 func _talk(data: Dictionary) -> void:

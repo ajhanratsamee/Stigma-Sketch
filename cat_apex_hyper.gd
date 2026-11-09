@@ -182,16 +182,9 @@ func _cleanup() -> void:
 # ---------------------------------------------------------------- วาด
 ## รอยเท้าแมว (ขนหางลูกศร)
 func _paw(c: Vector2, s: float, col: Color, angle := 0.0) -> void:
-	if s < 1.5:
-		return
-	var rot := Transform2D(angle, Vector2.ZERO)
-	var pad := PackedVector2Array()
-	for i in 14:
-		var a := TAU * float(i) / 14.0
-		pad.append(c + rot * Vector2(cos(a) * s * 0.6, s * 0.28 + sin(a) * s * 0.45))
-	draw_colored_polygon(pad, col)
-	for t in 4:
-		draw_circle(c + rot * Vector2((float(t) - 1.5) * s * 0.42, -s * (0.24 + (0.15 if t == 1 or t == 2 else 0.0))), s * 0.18, col)
+	# รอยเท้าแมวเป็นเม็ดกลมนุ่มแทน
+	draw_circle(c, s * 0.75, Color(col, col.a * 0.35 * 1.0))
+	draw_circle(c, s * 0.45, Color(col, col.a * 0.7 * 1.0))
 
 ## ลูกศรหนึ่งดอก หัวเป็นหูแมวสองแฉก หางเป็นรอยเท้า  tip คือปลายหัว d ทิศ size ความยาว
 func _arrow(tip: Vector2, d: Vector2, size: float, a: float, glow := true) -> void:

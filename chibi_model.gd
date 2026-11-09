@@ -153,7 +153,7 @@ const CAT_FUR := Color(0.6, 0.61, 0.64)
 const CAT_EYE := Color(0.06, 0.06, 0.07)
 const CAT_FLOAT := 0.26          # ก้นลอยสูงจากพื้นเท่านี้
 const CAT_DEPTH := 0.9
-const CAT_FLUFF := 0.022
+const CAT_FLUFF := 0.0          # ผิวเรียบนุ่มนวล ไม่มีขนฟู (เดิม 0.022)
 const CAT_HAND_R := 0.14
 const AZURE_RAISE := 0.0
 const AZ_EAR_X := 0.27           # หูพับของ AZURE ห่างกลางหัว
@@ -182,7 +182,7 @@ const CAT_TUCK_FOOT := Vector3(0.13, 0.4, 0.04)   # กระโดดแล้�
 const CAT_TUCK_HAND := Vector3(0.3, -0.64, 0.12)  # มือหดชิดตัว เทียบไหล่
 const CAT_TUCK_LEAN := 16.0
 const CAT_BREATH := 0.008
-const CAT_SWORD := 1.25
+const CAT_SWORD := 0.85         # อาวุธเล็กพอดีมือ (เดิม 1.25 ประมาณ 68%) จุดปลายดาบ/รอยฟันคิดตามค่านี้
 # วิ่ง 4 ขา ตัวก้มไปข้างหน้า มือเป็นขาหน้า ก้าวแบบควบ ขาหลังคู่หนึ่ง ขาหน้าคู่หนึ่ง
 const CAT_WALK_SWING := 0.14     # เดินสองขาแกว่งมือหน้าหลังเท่านี้
 const CAT_GALLOP_LEAN := 78.0
@@ -262,7 +262,7 @@ const CAT_FOOT := [Vector2(0.0, 0.0), Vector2(0.03, 0.09), Vector2(0.08, 0.14), 
 const CAT_PROFILE := [Vector2(0.0, 0.0), Vector2(0.04, 0.42), Vector2(0.16, 0.62), Vector2(0.4, 0.7), Vector2(0.7, 0.68), Vector2(0.95, 0.62), Vector2(1.15, 0.58), Vector2(1.31, 0.48), Vector2(1.43, 0.3), Vector2(1.5, 0.0)]
 
 # ขอบดำบางมากรอบตัวแมวและอาวุธ หนา 1 จุดของภาพโมเดล ผสมตามความทึบของขอบ จึงไม่หยัก
-const INK_LINE := Color(0.08, 0.07, 0.08)
+const INK_LINE := Color(0.27, 0.23, 0.21)   # เส้นขอบตัวแมวสีน้ำตาลเทาเข้ม นุ่มกว่าดำ
 const INK_WIDTH := 1.0
 const ARMOR_LINE := Color(0.95, 0.1, 0.1)   # เกราะ ขอบตัวเป็นสีแดงหนาขึ้น
 const ARMOR_WIDTH := 2.2
@@ -1846,7 +1846,19 @@ func _stripe() -> Color:
 		return MATCHA_STRIPE
 	return MAGE_STRIPE if style.begins_with("cat_staff") else BASIC_STRIPE
 
+const STRIPE_SOFT := 0.6        # ลายบนตัวจางเข้าหาสีขนหลัก ดูนุ่มนวล ไม่รก (ปลายหูยังเข้มตามเดิม)
+
 func _paint_color(paint: int, plain: Vector3, v: Vector3, top: float) -> Color:
+	var c := _paint_color_raw(paint, plain, v, top)
+	if paint == 2 or v.y > top + 0.2:
+		return c
+	var st := _stripe()
+	if c.is_equal_approx(st) or c.is_equal_approx(MATCHA_STRIPE):
+		var base := MATCHA_FUR if style.begins_with("cat_bow") else _fur()
+		return c.lerp(base, STRIPE_SOFT)
+	return c
+
+func _paint_color_raw(paint: int, plain: Vector3, v: Vector3, top: float) -> Color:
 	# CAT SUSI แมวสฟิงซ์ผิวม่วงเรียบ ไม่มีลาย มีรอยย่นจางๆ บนหน้าผาก ใบหูด้านในชมพูม่วง
 	if style.begins_with("cat_staff") and paint != 2:
 		if v.y > top + 0.1 and plain.z > 0.0:

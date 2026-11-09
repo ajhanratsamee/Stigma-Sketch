@@ -13,6 +13,7 @@ var enabled := true             # ปิดแล้วไม่รับนิ�
 var zone := Rect2()             # พื้นที่ที่แตะแล้วจอยไปเกิด ว่างคือแตะได้แค่ในวงเดิม
 var home := Vector2.ZERO        # จุดพักตอนไม่ได้แตะ
 var _knob := Vector2.ZERO
+var show_idle := false          # ไม่ได้แตะก็วาดจางๆ (ใช้ในโหมดสอนเล่น) ปกติล่องหน โผล่ใต้นิ้วตอนแตะ
 
 ## นิ้วที่จับจอยอยู่ (-1 คือไม่มี) ปุ่มอื่นจะไม่สนนิ้วนี้
 func finger() -> int:
@@ -70,7 +71,9 @@ func release() -> void:
 func _draw() -> void:
 	if not enabled:
 		return
-	# ไม่ได้แตะ วาดจางๆ ให้รู้ว่าแตะตรงนี้ได้
+	# ไม่ได้แตะ จอยล่องหน (ยกเว้นโหมดสอนเล่น วาดจางๆ ให้รู้ว่าแตะตรงนี้ได้)
+	if _finger == -1 and not show_idle:
+		return
 	var a := 1.0 if _finger != -1 else 0.45
 	var ring := Sketch.oval(Vector2.ZERO, RADIUS, RADIUS, 64)
 	draw_colored_polygon(ring, Color(Sketch.PAPER, 0.85 * a))

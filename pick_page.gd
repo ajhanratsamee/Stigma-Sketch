@@ -80,8 +80,9 @@ const CLASS_BOX := {
 	"GODHOOD": Rect2(1150.0, 378.0, 180.0, 70.0),
 }
 const CLASS_TEXT := 28
-const CLASS_LINE := UiStyle.LINE
-const CLASS_LINE_BOLD := UiStyle.LINE_BOLD + 1.0
+const CLASS_LINE := UiStyle.SOFT_LINE
+const CLASS_LINE_BOLD := UiStyle.SOFT_LINE_BOLD
+const INK := UiStyle.SOFT_TEXT
 const CLASS_TITLE_AT := Vector2(680.0, 72.0)
 const CLASS_TITLE_SIZE := 36
 const NO_CLASS_AT := Vector2(680.0, 260.0)
@@ -310,36 +311,36 @@ func _draw_tree() -> void:
 	if selected == "":
 		return
 	var font := Sketch.font()
-	draw_string(font, CLASS_TITLE_AT + TREE_DOWN, "คลาส", HORIZONTAL_ALIGNMENT_LEFT, -1.0, CLASS_TITLE_SIZE, Sketch.INK)
+	draw_string(font, CLASS_TITLE_AT + TREE_DOWN, "คลาส", HORIZONTAL_ALIGNMENT_LEFT, -1.0, CLASS_TITLE_SIZE, INK)
 	var tree := _tree()
 	if tree.is_empty():
-		draw_string(font, NO_CLASS_AT, "ยังไม่มีคลาส", HORIZONTAL_ALIGNMENT_LEFT, -1.0, CLASS_TITLE_SIZE, Sketch.INK)
+		draw_string(font, NO_CLASS_AT, "ยังไม่มีคลาส", HORIZONTAL_ALIGNMENT_LEFT, -1.0, CLASS_TITLE_SIZE, INK)
 		return
 	for id in tree:
 		for next in SkillPanel.next_of(id, selected):
 			var from: Vector2 = class_rect(id).position + Vector2(class_rect(id).size.x, class_rect(id).size.y * 0.5)
 			var to: Vector2 = class_rect(next).position + Vector2(0.0, class_rect(next).size.y * 0.5)
-			Sketch.line(self, PackedVector2Array([from, to]), 530, CLASS_LINE, Sketch.WOBBLE)
+			Sketch.line(self, PackedVector2Array([from, to]), 530, CLASS_LINE, Sketch.WOBBLE, UiStyle.SOFT_DIM)
 	var seed_no := 540
 	for id in tree:
 		var box := class_rect(id)
-		UiStyle.box(self, box, seed_no, CLASS_LINE_BOLD if id == chosen_class else CLASS_LINE, UiStyle.INK, UiStyle.PICKED if id == chosen_class else UiStyle.PAPER)
+		UiStyle.box(self, box, seed_no, CLASS_LINE_BOLD if id == chosen_class else CLASS_LINE, UiStyle.SOFT_ACCENT if id == chosen_class else UiStyle.SOFT_INK, UiStyle.SOFT_PICK if id == chosen_class else UiStyle.SOFT_CARD)
 		seed_no += 1
 		# ชื่อยาวย่อตัวอักษรให้พอดีกล่อง
 		var text_size := CLASS_TEXT
 		while text_size > UiStyle.SMALL and font.get_string_size(id, HORIZONTAL_ALIGNMENT_LEFT, -1.0, text_size).x > box.size.x - 24.0:
 			text_size -= 1
 		var word_w := font.get_string_size(id, HORIZONTAL_ALIGNMENT_LEFT, -1.0, text_size).x
-		draw_string(font, box.get_center() + Vector2(-word_w * 0.5, float(text_size) * 0.36), id, HORIZONTAL_ALIGNMENT_LEFT, -1.0, text_size, Sketch.INK)
+		draw_string(font, box.get_center() + Vector2(-word_w * 0.5, float(text_size) * 0.36), id, HORIZONTAL_ALIGNMENT_LEFT, -1.0, text_size, INK)
 
 func _draw() -> void:
 	_draw_tree()
 	# ปุ่มย้อนกลับ ยังไม่เลือกตัวกลับหน้าคลัง
-	draw_circle(BACK_CENTER, BACK_RADIUS, Color(1.0, 1.0, 1.0, 0.9))
+	draw_circle(BACK_CENTER, BACK_RADIUS, UiStyle.SOFT_CARD)
 	var back := Sketch.oval(BACK_CENTER, BACK_RADIUS, BACK_RADIUS, 40)
 	back.append(back[0])
-	Sketch.line(self, back, 520, CLASS_LINE, Sketch.WOBBLE)
-	Sketch.line(self, PackedVector2Array([BACK_CENTER + Vector2(BACK_GLYPH * 0.4, -BACK_GLYPH), BACK_CENTER + Vector2(-BACK_GLYPH * 0.5, 0.0), BACK_CENTER + Vector2(BACK_GLYPH * 0.4, BACK_GLYPH)]), 521, CLASS_LINE, Sketch.WOBBLE)
+	Sketch.line(self, back, 520, CLASS_LINE, Sketch.WOBBLE, UiStyle.SOFT_INK)
+	Sketch.line(self, PackedVector2Array([BACK_CENTER + Vector2(BACK_GLYPH * 0.4, -BACK_GLYPH), BACK_CENTER + Vector2(-BACK_GLYPH * 0.5, 0.0), BACK_CENTER + Vector2(BACK_GLYPH * 0.4, BACK_GLYPH)]), 521, CLASS_LINE + 0.6, Sketch.WOBBLE, UiStyle.SOFT_INK)
 	var name_font := Sketch.font()
 	for i in CHOICES.size():
 		var word: String = NAMES.get(CHOICES[i], "")
@@ -347,14 +348,14 @@ func _draw() -> void:
 			continue
 		var word_w := name_font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, NAME_SIZE).x
 		if (holders[i] as Node2D).visible:
-			draw_string(name_font, (holders[i] as Node2D).position + Vector2(-word_w * 0.5, NAME_BELOW), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, NAME_SIZE, Sketch.INK)
+			draw_string(name_font, (holders[i] as Node2D).position + Vector2(-word_w * 0.5, NAME_BELOW), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, NAME_SIZE, INK)
 	var box := button_rect()
 	var on := selected != ""
-	UiStyle.button(self, box, BUTTON_TEXT, 510, on, true)
+	UiStyle.soft_button(self, box, BUTTON_TEXT, 510, on, true)
 	if SHOW_TRY:
-		UiStyle.button(self, try_rect(), TRY_TEXT, 511, on)
+		UiStyle.soft_button(self, try_rect(), TRY_TEXT, 511, on)
 	var font := Sketch.font()
 	if _full_t > 0.0:
 		var msg := "คลังเต็มแล้ว ลบตัวเก่าในหน้าคลังก่อน"
 		var mw := font.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 28).x
-		draw_string(font, Vector2(_view.x * 0.5 - mw * 0.5, box.position.y - 20.0), msg, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 28, Color(0.8, 0.2, 0.15))
+		draw_string(font, Vector2(_view.x * 0.5 - mw * 0.5, box.position.y - 20.0), msg, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 28, UiStyle.SOFT_WARN)

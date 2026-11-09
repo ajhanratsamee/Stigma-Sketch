@@ -229,12 +229,9 @@ func _draw_fangs(c: Vector2, open: float, shut: float, sc: float, a: float) -> v
 
 # ---------------------------------------------------------------- วาด
 func _paw(c: Vector2, s: float, col: Color) -> void:
-	if s < 1.5 or col.a <= 0.0:
-		return
-	draw_circle(c + Vector2(0.0, s * 0.25), s * 0.55, col)
-	for i in 4:
-		var a := -2.45 + float(i) * 0.55
-		draw_circle(c + Vector2(cos(a), sin(a)) * s * 0.85 + Vector2(0.0, s * 0.15), s * 0.22, col)
+	# รอยเท้าแมวเป็นเม็ดกลมนุ่มแทน
+	draw_circle(c, s * 0.75, Color(col, col.a * 0.35 * 1.0))
+	draw_circle(c, s * 0.45, Color(col, col.a * 0.7 * 1.0))
 
 ## จันทร์เสี้ยว วาดเป็นเส้นโค้งหนาตรงกลางเรียวปลาย
 func _crescent(c: Vector2, r: float, thick: float, rot: float, col: Color) -> void:

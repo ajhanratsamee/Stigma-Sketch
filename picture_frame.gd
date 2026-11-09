@@ -3,6 +3,8 @@ extends Node2D
 ## ฉากหลังตอน HYPER แบบมืด (dark) คือดำสนิททั้งจอ ถ้าไม่มืดเป็นพื้นกระดาษเก่ามีกรอบรูป ความเข้มตาม k
 
 const TINT := Color(0.84, 0.76, 0.62)
+const DARK := Color(0.27, 0.24, 0.25)     # ฉาก HYPER แบบมืด เป็นน้ำตาลเทาเข้มนุ่มๆ ไม่ดำสนิท
+const DARK_ALPHA := 0.9
 const TINT_ALPHA := 0.8
 const INSET := 22.0
 const LINE := 7.0
@@ -20,7 +22,12 @@ func _draw() -> void:
 		return
 	var view := get_viewport_rect().size
 	if dark:
-		draw_rect(Rect2(Vector2.ZERO, view), Color(0.0, 0.0, 0.0, k))
+		draw_rect(Rect2(Vector2.ZERO, view), Color(DARK, DARK_ALPHA * k))
+		# แสงฟุ้งจางๆ กลางจอ ไม่ทึบแบน
+		var c := view * 0.5
+		for i in 4:
+			var r := view.y * (0.75 - 0.15 * float(i))
+			draw_circle(c, r, Color(0.55, 0.48, 0.5, 0.05 * k))
 		return
 	draw_rect(Rect2(Vector2.ZERO, view), Color(TINT, TINT_ALPHA * k))
 	var a := Vector2(INSET, INSET)

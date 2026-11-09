@@ -188,6 +188,7 @@ static func accept(entry: Dictionary, id: String) -> bool:
 	if not can_accept(entry, q):
 		return false
 	_qs(entry)[id] = {"s": "active", "n": 0, "day": today()}
+	Snd.play("quest", -2.0)
 	return true
 
 ## ส่งเควส ได้รางวัล EXP ตามเลเวลตอนส่ง ปลดจดหมายถัดไป
@@ -197,6 +198,7 @@ static func turn_in(entry: Dictionary, id: String) -> Dictionary:
 	var q := quest(id)
 	var qs := _qs(entry)
 	qs[id] = {"s": "done", "n": need_of(q), "day": today()}
+	Snd.play("quest_done", -2.0)
 	var lv := int(entry.get("level", 1))
 	var reward := {"exp": maxi(10, int(round(float(LevelData.need(lv)) * float(q["reward"]["k"])))), "title": str(q["reward"].get("title", ""))}
 	if str(reward["title"]) != "":

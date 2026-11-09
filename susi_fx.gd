@@ -63,34 +63,21 @@ func _alpha() -> float:
 
 # ---------------------------------------------------------------- ลายแมว
 func paw(at: Vector2, size: float, color: Color) -> void:
-	draw_circle(at + Vector2(0.0, size * 0.25), size * 0.55, color)
-	for i in 4:
-		var a := -2.45 + float(i) * 0.55
-		draw_circle(at + Vector2(cos(a), sin(a)) * size * 0.85 + Vector2(0.0, size * 0.15), size * 0.24, color)
+	# รอยเท้าแมวเป็นเม็ดกลมนุ่มแทน
+	draw_circle(at, size * 0.75, Color(color, color.a * 0.35 * 1.0))
+	draw_circle(at, size * 0.45, Color(color, color.a * 0.7 * 1.0))
 
 func ears(c: Vector2, size: float, color: Color, inner := PINK) -> void:
-	for side in [-1.0, 1.0]:
-		var base := c + Vector2(side * size * 0.55, -size * 0.6)
-		var tri := PackedVector2Array([base + Vector2(-side * size * 0.32, size * 0.1), base + Vector2(side * size * 0.12, -size * 0.6), base + Vector2(side * size * 0.36, size * 0.2)])
-		draw_colored_polygon(tri, color)
-		var m := (tri[0] + tri[1] + tri[2]) / 3.0
-		draw_colored_polygon(PackedVector2Array([tri[0].lerp(m, 0.45), tri[1].lerp(m, 0.45), tri[2].lerp(m, 0.45)]), Color(inner, color.a))
+	# ลายแมวตกแต่งเอาออก ให้เอฟเฟกต์ดูนุ่มเรียบ
+	pass
 
 func face(c: Vector2, size: float, ink: Color) -> void:
-	if size < 10.0:
-		return
-	var w := maxf(2.0, size * 0.08)
-	for side in [-1.0, 1.0]:
-		var e := c + Vector2(side * size * 0.3, -size * 0.08)
-		draw_polyline(PackedVector2Array([e + Vector2(-size * 0.12, size * 0.06), e + Vector2(0.0, -size * 0.06), e + Vector2(size * 0.12, size * 0.06)]), ink, w, true)
-		draw_circle(c + Vector2(side * size * 0.48, size * 0.14), size * 0.1, Color(1.0, 0.55, 0.6, 0.6 * ink.a))
-	draw_arc(c + Vector2(-size * 0.08, size * 0.2), size * 0.08, 0.0, PI, 8, ink, w * 0.8, true)
-	draw_arc(c + Vector2(size * 0.08, size * 0.2), size * 0.08, 0.0, PI, 8, ink, w * 0.8, true)
+	# ลายแมวตกแต่งเอาออก ให้เอฟเฟกต์ดูนุ่มเรียบ
+	pass
 
 func whiskers(c: Vector2, size: float, color: Color) -> void:
-	for side in [-1.0, 1.0]:
-		for k in 2:
-			draw_line(c + Vector2(side * size * 0.45, size * (0.1 + 0.12 * float(k))), c + Vector2(side * size * 1.05, size * (0.02 + 0.2 * float(k))), color, 2.0, true)
+	# ลายแมวตกแต่งเอาออก ให้เอฟเฟกต์ดูนุ่มเรียบ
+	pass
 
 func cat_eye(c: Vector2, size: float, iris: Color) -> void:
 	var pts := PackedVector2Array()

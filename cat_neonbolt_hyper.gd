@@ -316,17 +316,9 @@ func _draw_gate() -> void:
 		var p := c + Vector2(cos(ang) * hw, sin(ang) * hh)
 		var out := Vector2(cos(ang) * hh / maxf(hw, 1.0), sin(ang)).normalized()
 		over.draw_circle(p + out * 18.0 * k, 22.0 * k, Color(WHITE, 0.9))
-	# หูแมวปีศาจบนยอดประตู
-	for sx in [-1.0, 1.0]:
-		var s := float(sx)
-		var base := c + Vector2(s * hw * 0.35, -hh * 0.97)
-		over.draw_colored_polygon(PackedVector2Array([base + Vector2(-s * 45.0, 14.0), base + Vector2(s * 40.0, -150.0 * k), base + Vector2(s * 65.0, 18.0)]), Color(WHITE, 0.95))
-		over.draw_colored_polygon(PackedVector2Array([base + Vector2(-s * 18.0, 6.0), base + Vector2(s * 30.0, -95.0 * k), base + Vector2(s * 42.0, 10.0)]), Color(PINK, 0.9))
-	# รอยเท้าที่ฐานประตู
-	var pc := c + Vector2(0.0, hh * 0.98)
-	over.draw_circle(pc, 30.0, Color(WHITE, 0.95))
-	for i in 3:
-		over.draw_circle(pc + Vector2((float(i) - 1.0) * 27.0, -34.0 - (6.0 if i == 1 else 0.0)), 11.0, Color(WHITE, 0.95))
+	# ยอดและฐานประตู: เม็ดแสงกลมนุ่ม (เอาหูแมวกับรอยเท้าออก)
+	over.draw_circle(c + Vector2(0.0, -hh * 0.98), 26.0 * k, Color(WHITE, 0.55))
+	over.draw_circle(c + Vector2(0.0, hh * 0.98), 26.0, Color(WHITE, 0.55))
 
 func _draw_over() -> void:
 	_draw_gate()

@@ -141,7 +141,7 @@ func _stage_tick(delta: float) -> void:
 	elif _t >= WHITE_HOLD:
 		wk = 1.0 - clampf((_t - WHITE_HOLD) / (WHITE_GONE - WHITE_HOLD), 0.0, 1.0)
 	if is_instance_valid(_white):
-		_white.color = Color(1.0, 1.0, 1.0, wk)
+		_white.color = Color(0.99, 0.96, 0.91, wk * 0.85)   # แฟลชขาวเป็นครีมนุ่ม ไม่แสบตา
 	if not _final_done and _t >= FINAL_AT:
 		_final_done = true
 		_hit_all(FINAL_DMG)
@@ -186,20 +186,13 @@ func _exit_tree() -> void:
 
 # ---------------------------------------------------------------- วาด
 func _paw(c: Vector2, s: float, col: Color) -> void:
-	if s < 1.5 or col.a <= 0.0:
-		return
-	draw_circle(c + Vector2(0.0, s * 0.25), s * 0.55, col)
-	for t in 4:
-		var a := -2.45 + float(t) * 0.55
-		draw_circle(c + Vector2(cos(a), sin(a)) * s * 0.85 + Vector2(0.0, s * 0.15), s * 0.22, col)
+	# รอยเท้าแมวเป็นเม็ดกลมนุ่มแทน
+	draw_circle(c, s * 0.75, Color(col, col.a * 0.35 * 1.0))
+	draw_circle(c, s * 0.45, Color(col, col.a * 0.7 * 1.0))
 
 func _ears(c: Vector2, s: float, col: Color) -> void:
-	if s < 2.0:
-		return
-	for side in [-1.0, 1.0]:
-		var b := c + Vector2(side * s * 0.5, 0.0)
-		draw_colored_polygon(PackedVector2Array([b + Vector2(-s * 0.32, 0.0), b + Vector2(side * s * 0.1, -s * 0.7), b + Vector2(s * 0.32, 0.0)]), col)
-		draw_colored_polygon(PackedVector2Array([b + Vector2(-s * 0.15, -s * 0.05), b + Vector2(side * s * 0.06, -s * 0.45), b + Vector2(s * 0.15, -s * 0.05)]), Color(PINK, col.a))
+	# ลายแมวตกแต่งเอาออก ให้เอฟเฟกต์ดูนุ่มเรียบ
+	pass
 
 ## ต้นไม้สนธยา ลำต้นเทาเขียวมืด พุ่มใบสามก้อนเรืองเขียว ยอดพุ่มมีหูแมว
 ## ส่วนที่อยู่สูงกว่ารอยตัดไถลไปตามรอยตัดหลังโดนตัด

@@ -63,12 +63,9 @@ class Base extends Node2D:
 		SoftDraw.pline(self, pts, color, w, true)
 	## รอยเท้าแมว อุ้งใหญ่หนึ่ง นิ้วสาม หมุนได้
 	func paw(c: Vector2, r: float, color: Color, rot := 0.0) -> void:
-		var tr := Transform2D(rot, c)
-		SoftDraw.poly(self, _tx(tr, oval(Vector2(0.0, r * 0.15), r * 0.62, r * 0.5, 14)), color)
-		for i in 3:
-			var x := (float(i) - 1.0) * r * 0.55
-			var y := -r * (0.55 + (0.12 if i == 1 else 0.0))
-			SoftDraw.poly(self, _tx(tr, oval(Vector2(x, y), r * 0.24, r * 0.28, 10)), color)
+		# รอยเท้าแมวเป็นเม็ดกลมนุ่มแทน
+		draw_circle(c, r * 0.75, Color(color, color.a * 0.35 * 1.0))
+		draw_circle(c, r * 0.45, Color(color, color.a * 0.7 * 1.0))
 	func _tx(tr: Transform2D, pts: PackedVector2Array) -> PackedVector2Array:
 		var out := PackedVector2Array()
 		for p in pts:
@@ -76,21 +73,12 @@ class Base extends Node2D:
 		return out
 	## หูแมวคู่ ด้านในชมพู ฐานอยู่ที่ c ห่างกัน gap
 	func ears(c: Vector2, r: float, gap: float, color: Color, inner := Color(1.0, 0.72, 0.85)) -> void:
-		for side in [-1.0, 1.0]:
-			var b := c + Vector2(side * gap, 0.0)
-			var tri := PackedVector2Array([b + Vector2(-side * r * 0.55, r * 0.15), b + Vector2(side * r * 0.2, -r), b + Vector2(side * r * 0.6, r * 0.25)])
-			SoftDraw.poly(self, tri, color)
-			var m := (tri[0] + tri[1] + tri[2]) / 3.0
-			SoftDraw.poly(self, PackedVector2Array([tri[0].lerp(m, 0.45), tri[1].lerp(m, 0.45), tri[2].lerp(m, 0.45)]), Color(inner, color.a))
+		# ลายแมวตกแต่งเอาออก ให้เอฟเฟกต์ดูนุ่มเรียบ
+		pass
 	## หน้าแมวยิ้ม ตา ^ ^ ปาก ω
 	func cat_face(c: Vector2, r: float, ink: Color) -> void:
-		var w := maxf(2.0, r * 0.09)
-		for side in [-1.0, 1.0]:
-			var e := c + Vector2(side * r * 0.32, -r * 0.1)
-			SoftDraw.pline(self, PackedVector2Array([e + Vector2(-r * 0.13, r * 0.07), e + Vector2(0.0, -r * 0.07), e + Vector2(r * 0.13, r * 0.07)]), ink, w, true)
-		var m := c + Vector2(0.0, r * 0.2)
-		draw_arc(m + Vector2(-r * 0.09, 0.0), r * 0.09, 0.0, PI, 8, ink, w * 0.8, true)
-		draw_arc(m + Vector2(r * 0.09, 0.0), r * 0.09, 0.0, PI, 8, ink, w * 0.8, true)
+		# ลายแมวตกแต่งเอาออก ให้เอฟเฟกต์ดูนุ่มเรียบ
+		pass
 	## ตาแมวรีมีม่านตาแนวตั้ง
 	func cat_eye(c: Vector2, rx: float, ry: float, iris: Color, slit: Color) -> void:
 		var lens := PackedVector2Array()

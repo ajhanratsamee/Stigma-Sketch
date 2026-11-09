@@ -286,12 +286,15 @@ func _ready() -> void:
 	hero.plain_weapon = chosen_weapon
 	hero.set_job("boy")
 	hero.use_model(SkillPanel.model_style(chosen_weapon, chosen_class))
+	hero.is_player = true
 	hero.half_width = _view.x * 0.5 / (CombatData.UNIT * ZOOM) - SIDE_MARGIN
 	world.add_child(hero)
 	pad = TouchPad.new()
 	add_child(pad)
 	# CAT SUSI มีคอมโบกดลง ใช้ปุ่มลง
 	pad.show_down = chosen_weapon == "mage"
+	# AZURE/LAPIS ปุ่ม V สลับตัว อยู่ในพัดต่อจากช่องสกิล ก่อน HYPER
+	pad.pair_swap_on = chosen_weapon == "azure"
 	pad.layout(_view)
 	if chosen_weapon == "mage" or chosen_weapon == "bow":
 		_mage = MageCaster.new()
@@ -302,8 +305,10 @@ func _ready() -> void:
 	joy.position = pad.stick_home
 	joy.home = pad.stick_home
 	joy.enabled = pad.use_stick
+	joy.show_idle = tutorial
 	# จอยลอย แตะตรงไหนก็ได้ครึ่งซ้ายของจอ (ใต้การ์ดเลือด) จอยเกิดใต้นิ้ว ไม่ต้องเล็งลูกศร
-	var cells_left: float = minf((pad.buttons["s0"] as Vector2).x - TouchPad.CELL * 0.5 - 40.0, _view.x * 0.55)
+	var left_btn: Vector2 = pad.buttons.get("pswap", pad.buttons["s0"])
+	var cells_left: float = minf(minf((pad.buttons["s0"] as Vector2).x, left_btn.x) - TouchPad.CELL * 0.5 * pad.size_k - 40.0, _view.x * 0.55)
 	joy.zone = Rect2(Vector2(0.0, 200.0), Vector2(cells_left, _view.y - 200.0))
 	pad.stick = joy
 	add_child(joy)
@@ -313,10 +318,6 @@ func _ready() -> void:
 	pad.buttons["back"] = Vector2(_view.x - BACK_MARGIN - UiStyle.safe_side() - TouchPad.SLOT_RADIUS, BACK_MARGIN + TouchPad.SLOT_RADIUS)
 	pad.buttons["combo"] = pad.buttons["back"] + Vector2(-TouchPad.SLOT_RADIUS * 2.0 - SKILL_GAP, 0.0)
 	pad.buttons["skill"] = pad.buttons["combo"] + Vector2(-TouchPad.SLOT_RADIUS * 2.0 - SKILL_GAP, 0.0)
-	# AZURE/LAPIS ปุ่ม V สลับตัว หน้าปุ่ม Z
-	if chosen_weapon == "azure":
-		pad.pair_swap_on = true
-		pad.buttons["pswap"] = pad.buttons["z"] + Vector2(-TouchPad.RADIUS * 2.0 - TouchPad.GAP, 0.0)
 	pad.pressed_button.connect(_on_button)
 	combo_panel = ComboPanel.new()
 	combo_panel.z_index = 45
@@ -348,6 +349,8 @@ func _ready() -> void:
 	bars.level = chosen_level
 	bars.exp_ratio = _exp_ratio()
 	add_child(bars)
+	# ฟิลเตอร์นุ่มทับฉากโลก โทนเดียวกับหน้าโหลด (UI อยู่เหนือ)
+	add_child(SoftWorld.new())
 	_cd_ui = Node2D.new()
 	_cd_ui.z_index = 44
 	_cd_ui.draw.connect(_draw_cds)
@@ -654,6 +657,7 @@ const MENU_W := 300.0
 const MENU_ROW := 70.0
 
 var _menu: Node2D
+var settings_panel: SettingsPanel    # แผงตั้งค่าเสียง สั่น ปุ่ม
 
 ## ย้อนกลับไปหน้าก่อนหน้า ทดลองเล่นกลับหน้าสร้าง
 func go_back() -> void:
@@ -679,7 +683,23 @@ func menu_items() -> Array:
 		out.append(["รีคูลดาวน์", true, "cd"])
 		out.append(["รีมานา", true, "mp"])
 		out.append(["รีเลือด", true, "hp"])
+	out.append(["ตั้งค่า", true, "settings"])
 	return out
+
+## เปิดแผงตั้งค่า (เสียง สั่น ปุ่ม)
+func open_game_settings() -> void:
+	if settings_panel == null:
+		settings_panel = SettingsPanel.new()
+		settings_panel.page = self
+		settings_panel.closed.connect(func() -> void:
+			pad.visible = true
+			joy.visible = true)
+		add_child(settings_panel)
+	pad.reset()
+	joy.release()
+	pad.visible = false
+	joy.visible = false
+	settings_panel.open()
 
 ## ช่องสกิลที่ติดคูลดาวน์ มืดลงตามเวลาที่เหลือ มีตัวเลขวินาที (สกิล CAT BOYS และ HYPER)
 func _draw_cds() -> void:
@@ -692,7 +712,7 @@ func _draw_cds() -> void:
 	for c in cells:
 		var id: String = c[1]
 		var left := float(skill_cds.get(id, 0.0))
-		if id == "" or left <= 0.0 or not pad.buttons.has(c[0]):
+		if id == "" or left <= 0.0 or not pad.shown(c[0]):
 			continue
 		var r: Rect2 = pad.cell_rect(c[0])
 		var k := clampf(left / maxf(Stats.skill_cd(chosen_weapon, id), 0.01), 0.0, 1.0)
@@ -817,6 +837,10 @@ func _menu_tap(at: Vector2) -> bool:
 		if menu_rect(i).has_point(at):
 			if not items[i][1]:
 				return true
+			if items[i].size() > 2 and str(items[i][2]) == "settings":
+				close_settings()
+				open_game_settings()
+				return true
 			# ช่องติ๊ก สลับเปิดปิด เมนูยังเปิดอยู่
 			if items[i].size() > 2:
 				toggle_train(str(items[i][2]))
@@ -851,13 +875,13 @@ func _draw_menu() -> void:
 		var color := Sketch.INK if on else TouchPad.EMPTY_RING
 		UiStyle.box(_menu, r, 881 + i, UiStyle.LINE, color)
 		var a := r.position
-		if items[i].size() > 2:
+		if items[i].size() > 2 and str(items[i][2]) != "settings":
 			# ช่องติ๊กทางซ้าย ข้อความต่อท้าย
 			var box := Rect2(Vector2(a.x + 22.0, r.get_center().y - 18.0), Vector2(36.0, 36.0))
 			var ticked := train_flag(str(items[i][2]))
-			UiStyle.box(_menu, box, 890 + i, 3.0, UiStyle.INK, Color(0.85, 0.95, 0.85) if ticked else UiStyle.PAPER)
+			UiStyle.box(_menu, box, 890 + i, UiStyle.LINE, UiStyle.INK, Color(0.88, 0.94, 0.88) if ticked else UiStyle.PAPER)
 			if ticked:
-				_menu.draw_polyline(PackedVector2Array([box.position + Vector2(7.0, 18.0), box.position + Vector2(15.0, 28.0), box.position + Vector2(31.0, 6.0)]), Color(0.2, 0.6, 0.3), 5.0, true)
+				_menu.draw_polyline(PackedVector2Array([box.position + Vector2(7.0, 18.0), box.position + Vector2(15.0, 28.0), box.position + Vector2(31.0, 6.0)]), Color(0.4, 0.62, 0.45), 4.0, true)
 			_menu.draw_string(font, Vector2(box.end.x + 18.0, r.get_center().y + 11.0), items[i][0], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30, color)
 			continue
 		var w := font.get_string_size(items[i][0], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30).x
@@ -955,6 +979,7 @@ func gain_exp(amount: int) -> void:
 		pop.position = hero.position + Vector2(0.0, -80.0)
 		pop.scale = Vector2.ONE * 2.2
 		world.add_child(pop)
+		Snd.play("levelup", -1.0)
 		var ring := LevelUpRing.new()
 		ring.position = hero.position
 		world.add_child(ring)
@@ -1041,6 +1066,11 @@ func _refresh_slot() -> void:
 	pad.queue_redraw()
 
 ## ใช้สกิลได้เฉพาะตอนยืนบนพื้น และไม่ซ้อนกับท่าที่ออกอยู่
+## เสียงปล่อยสกิล นุ่มๆ สามแบบตามชนิดสกิล (ลม กระดิ่ง ประกาย)
+func _skill_sound(id: String) -> void:
+	var k := id.hash() % 3
+	Snd.play(["skill_air", "skill_bell", "skill_spark"][absi(k)], -4.0, 0.04)
+
 func _use_skill(id: String) -> void:
 	# เลเวลไม่ถึง ใช้สกิลนี้ไม่ได้
 	var need := SkillPanel.need_level(SkillPanel.find_skill(id))
@@ -1056,7 +1086,11 @@ func _use_skill(id: String) -> void:
 		if susi == null:
 			return
 		if susi != null and not SkillPanel.find_skill(id).get("passive", false):
+			var cd0: float = susi.cd_left(id)
 			susi.use(id)
+			# ใช้สำเร็จ (คูลดาวน์เริ่ม) ค่อยมีเสียง
+			if susi.cd_left(id) > cd0 + 0.01:
+				_skill_sound(id)
 		return
 	if hero.plain_swing > 0.0 or not hero.on_floor():
 		return
@@ -1074,6 +1108,7 @@ func _use_skill(id: String) -> void:
 			bars.notice("มานาไม่พอ (%d)" % int(need_mp))
 			return
 		hero.mp -= need_mp
+		_skill_sound(id)
 		BigSkillFx.cast(self, id, need_mp)
 		skill_cds[id] = Stats.skill_cd(chosen_weapon, id)
 		# สกิลใหญ่ หยุดเวลาชั่วครู่
@@ -1149,6 +1184,8 @@ func _use_skill(id: String) -> void:
 		return
 
 func _start_hyper(stage: HyperStage) -> void:
+	Snd.play("hyper", -1.0)
+	Snd.buzz(30)
 	pad.reset()
 	joy.release()
 	pad.visible = false

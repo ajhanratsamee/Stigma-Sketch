@@ -5,12 +5,20 @@ extends Node2D
 
 const NAME_SIZE := 36
 const ACTIVE_RANGE := 1700.0      # ระยะจากกล้อง (จุดของ world) ที่ยังสร้างโมเดลไว้
+const BACK_SCALE := 0.84          # NPC ยืนแถวหลังติดฉาก ตัวเล็กลงนิดให้ดูอยู่ไกลกว่าทางเดิน
+const BACK_ROW := 0.95            # ยกขึ้นเท่านี้ของระยะแถวบ้าน (TownPage.ROW_BACK) ยืนชิดหน้าบ้าน ไม่ทับทางเดิน
+const BACK_TINT := Color(0.94, 0.94, 0.97)   # จางลงนิดเหมือนอยู่ด้านหลัง
+
+## ระยะยกขึ้นจากเส้นทางเดิน (จุดภาพในโลก)
+static func back_lift() -> float:
+	return TownPage.ROW_BACK * BACK_ROW / WalkPage.ZOOM
 
 var data: Dictionary = {}
 var page: WalkPage
 var _body: Hero
 var _t := 0.0
 var _label: Node2D
+var _holder: Node2D               # ย่อตัว NPC (ไม่ย่อป้ายชื่อ)
 var talk_mark := false            # มีเควสให้รับ/ส่ง ขึ้น ! บนหัว
 
 func _ready() -> void:
@@ -51,8 +59,13 @@ func _make_body() -> void:
 	_body.plain_weapon = "cat"
 	_body.set_job("boy")
 	_body.facing = -1.0 if randf() < 0.5 else 1.0
-	add_child(_body)
-	move_child(_body, 0)
+	if _holder == null:
+		_holder = Node2D.new()
+		_holder.scale = Vector2.ONE * BACK_SCALE
+		_holder.modulate = BACK_TINT
+		add_child(_holder)
+		move_child(_holder, 0)
+	_holder.add_child(_body)
 	var model := ChibiModel.new()
 	model.hero = _body
 	model.style = "cat_npc"
@@ -64,7 +77,7 @@ func _draw_label() -> void:
 	var nm := str(data.get("name", ""))
 	if nm == "":
 		return
-	var y := -250.0 * float((data.get("look", {}) as Dictionary).get("size", 1.0))
+	var y := -250.0 * BACK_SCALE * float((data.get("look", {}) as Dictionary).get("size", 1.0))
 	var font := Sketch.font()
 	# ป้ายชื่อขึ้นเฉพาะตอนตัวละครเดินมาใกล้ ตัวที่อยู่ไกลซ่อนไว้ ไม่รกจอ (เครื่องหมาย ! เควสยังขึ้นตลอด)
 	if page == null or not page.has_method("npc_label_on") or page.npc_label_on(self):

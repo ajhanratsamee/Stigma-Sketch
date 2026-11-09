@@ -67,6 +67,10 @@ func ground_h(x: float) -> float:
 
 func _exit_tree() -> void:
 	Hero.ground_fn = Callable()
+	# รองานสร้างผิว NPC เบื้องหลังให้จบก่อนออกจากฉาก กันเธรดเรียกโมเดลตอนสคริปต์ถูกปิด
+	if _warm_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_warm_task)
+		_warm_task = -1
 
 func is_town() -> bool:
 	return true

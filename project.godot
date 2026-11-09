@@ -5,8 +5,12 @@ config_version=5
 config/name="Stigma Sketch"
 run/main_scene="res://roster.tscn"
 config/features=PackedStringArray("4.3")
-boot_splash/show_image=false
-boot_splash/bg_color=Color(0.96, 0.95, 0.91, 1)
+boot_splash/show_image=true
+boot_splash/image="res://splash_cat.png"
+boot_splash/fullsize=false
+boot_splash/use_filter=true
+boot_splash/bg_color=Color(0.968, 0.949, 0.91, 1)
+config/icon="res://icon_cat.png"
 
 [display]
 

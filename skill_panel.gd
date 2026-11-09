@@ -303,7 +303,13 @@ static func pair_partner(form: String) -> String:
 	return "lapis" if form == "azure" else "azure"
 
 ## คลาสแรกที่แยกสายจาก BASIC ของตัวละครนี้
+## คลาสที่ซ่อนไว้ก่อน (ยังไม่เปิดให้เล่น) ไม่โผล่ในผังคลาสและเควสเปลี่ยนคลาส
+const HIDDEN_CLASSES := ["MANASTARKER", "ESSENCE WEAVER"]
+
 static func first_classes(weapon_id: String) -> Array:
+	return _first_classes_raw(weapon_id).filter(func(c) -> bool: return not c in HIDDEN_CLASSES)
+
+static func _first_classes_raw(weapon_id: String) -> Array:
 	if weapon_id == "mage":
 		return MAGE_NEXT["BASIC"]
 	if weapon_id == "bow":
@@ -400,6 +406,9 @@ static func pair_style(form: String, class_id: String) -> String:
 
 ## คลาสถัดไปของคลาสนี้ SUSI กับ CAT BOYS เริ่มที่ BASIC แต่แยกสายกัน
 static func next_of(id: String, weapon_id: String = "") -> Array:
+	return _next_of_raw(id, weapon_id).filter(func(c) -> bool: return not c in HIDDEN_CLASSES)
+
+static func _next_of_raw(id: String, weapon_id: String = "") -> Array:
 	if weapon_id == "mage" and MAGE_NEXT.has(id):
 		return MAGE_NEXT[id]
 	if weapon_id == "bow":

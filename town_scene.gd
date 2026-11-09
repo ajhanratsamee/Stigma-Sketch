@@ -593,7 +593,7 @@ static func terrain(c: Node2D, p) -> void:
 			under.reverse()
 			var isl := fronts.duplicate()
 			isl.append_array(under)
-			SoftPaint.shape(c, isl, col.lerp(Color(0.85, 0.82, 0.9), 0.4), 0.05)
+			SoftPaint.shape(c, isl, Color(0.8, 0.76, 0.88), 0.05)
 			for i in range(0, nf, 5):
 				SoftPaint.oval(c, fronts[i] + Vector2(0.0, 30.0 + sin(float(i) / float(maxi(nf - 1, 1)) * PI) * 140.0), 50.0, 24.0, Color(1.0, 1.0, 1.0, 0.85), 0.35)
 		else:
@@ -607,7 +607,7 @@ static func terrain(c: Node2D, p) -> void:
 		var rev := fronts.duplicate()
 		rev.reverse()
 		band.append_array(rev)
-		c.draw_colored_polygon(band, col)
+		c.draw_colored_polygon(band, col.darkened(0.1) if p.style == "sky" else col)
 		# เส้นหมึกขอบหน้า (กระดาษตัด) กับขอบหลังจางๆ
 		c.draw_polyline(fronts, Color(INK, 0.75), 3.0, true)
 		c.draw_polyline(backs, Color(INK, 0.25), 2.0, true)

@@ -282,6 +282,45 @@ func _icon(c: Vector2, kind: String) -> void:
 			draw_circle(c + Vector2(-10.0, 8.0), 12.0, Color(1.0, 1.0, 1.0))
 			draw_circle(c + Vector2(8.0, 6.0), 14.0, Color(1.0, 1.0, 1.0))
 			draw_circle(c + Vector2(0.0, -10.0), 9.0, Color(1.0, 0.85, 0.4))
+		"train":
+			UiStyle.fill(self, Rect2(c.x - 22.0, c.y - 12.0, 44.0, 22.0), Color(0.85, 0.35, 0.3), 7.0)
+			UiStyle.fill(self, Rect2(c.x - 16.0, c.y - 8.0, 10.0, 8.0), Color(0.95, 0.95, 1.0), 3.0)
+			UiStyle.fill(self, Rect2(c.x + 4.0, c.y - 8.0, 10.0, 8.0), Color(0.95, 0.95, 1.0), 3.0)
+			draw_circle(c + Vector2(-12.0, 13.0), 6.0, Color(0.3, 0.3, 0.35))
+			draw_circle(c + Vector2(12.0, 13.0), 6.0, Color(0.3, 0.3, 0.35))
+		"underwater":
+			draw_circle(c, 18.0, Color(0.45, 0.75, 0.9))
+			draw_circle(c + Vector2(-6.0, -6.0), 4.0, Color(1.0, 1.0, 1.0, 0.8))
+			draw_circle(c + Vector2(6.0, -12.0), 3.0, Color(1.0, 1.0, 1.0, 0.8))
+			UiStyle.fill(self, Rect2(c.x - 10.0, c.y + 2.0, 20.0, 10.0), Color(1.0, 0.65, 0.3), 5.0)
+		"airship":
+			draw_circle(c + Vector2(0.0, -8.0), 15.0, Color(0.95, 0.75, 0.4))
+			UiStyle.fill(self, Rect2(c.x - 16.0, c.y + 8.0, 32.0, 10.0), Color(0.6, 0.42, 0.28), 5.0)
+		"minecart":
+			UiStyle.fill(self, Rect2(c.x - 16.0, c.y - 8.0, 32.0, 18.0), Color(0.55, 0.45, 0.4), 5.0)
+			draw_circle(c + Vector2(-8.0, -10.0), 6.0, Color(0.7, 0.65, 0.8))
+			draw_circle(c + Vector2(-9.0, 13.0), 5.0, Color(0.3, 0.3, 0.35))
+			draw_circle(c + Vector2(9.0, 13.0), 5.0, Color(0.3, 0.3, 0.35))
+		"kitchen":
+			UiStyle.fill(self, Rect2(c.x - 16.0, c.y - 6.0, 32.0, 20.0), Color(0.75, 0.75, 0.8), 8.0)
+			draw_circle(c + Vector2(-6.0, -14.0), 5.0, Color(1.0, 1.0, 1.0, 0.85))
+			draw_circle(c + Vector2(4.0, -18.0), 6.0, Color(1.0, 1.0, 1.0, 0.85))
+		"toybox":
+			UiStyle.fill(self, Rect2(c.x - 18.0, c.y - 2.0, 14.0, 14.0), Color(0.95, 0.45, 0.45), 3.0)
+			UiStyle.fill(self, Rect2(c.x + 2.0, c.y - 2.0, 14.0, 14.0), Color(0.45, 0.65, 0.95), 3.0)
+			UiStyle.fill(self, Rect2(c.x - 8.0, c.y - 16.0, 14.0, 14.0), Color(1.0, 0.85, 0.35), 3.0)
+		"waterfall":
+			UiStyle.fill(self, Rect2(c.x - 8.0, c.y - 18.0, 16.0, 30.0), Color(0.6, 0.85, 1.0), 6.0)
+			draw_circle(c + Vector2(-10.0, 14.0), 7.0, Color(1.0, 1.0, 1.0, 0.8))
+			draw_circle(c + Vector2(10.0, 14.0), 7.0, Color(1.0, 1.0, 1.0, 0.8))
+		"cattree":
+			UiStyle.fill(self, Rect2(c.x - 5.0, c.y - 10.0, 10.0, 26.0), Color(0.75, 0.6, 0.45), 4.0)
+			draw_circle(c + Vector2(0.0, -14.0), 13.0, Color(0.45, 0.72, 0.4))
+		"nightmarket":
+			for i in 3:
+				var p := c + Vector2(-14.0 + float(i) * 14.0, -6.0 + float(i % 2) * 8.0)
+				draw_circle(p, 7.0, Color(1.0, 0.6 + 0.1 * float(i), 0.4))
+				draw_circle(p, 3.0, Color(1.0, 0.95, 0.75))
 
 func _draw() -> void:
 	if not visible:

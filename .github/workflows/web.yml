@@ -1,0 +1,29 @@
+name: Web build to itch.io
+# ทุกครั้งที่ push ขึ้น main จะส่งออกเกมเป็นเว็บแล้วอัปโหลดขึ้น itch.io
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Godot templates
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates/
+          ln -sf /root/.local/share/godot/export_templates/4.3.stable ~/.local/share/godot/export_templates/4.3.stable || true
+      - name: Import
+        run: godot --headless --import || true
+      - name: Export web
+        run: |
+          mkdir -p build/web
+          godot --headless --export-release "Web" build/web/index.html
+      - name: Upload to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_TARGET: ${{ vars.ITCH_TARGET }}
+        run: butler push build/web "$ITCH_TARGET:html"

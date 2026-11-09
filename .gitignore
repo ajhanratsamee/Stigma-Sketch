@@ -1,0 +1,8 @@
+# Godot
+.godot/
+*.import.tmp
+export_credentials.cfg
+# ไฟล์ build
+build/
+*.apk
+*.idsig

@@ -126,6 +126,9 @@ var ai_slamming := false
 var aggro := 0.0               # ระยะที่เริ่มไล่ตาม 0 คือไล่ตลอด
 var floor_h := 0.0             # ยืนบนแท่นลอยสูงเท่านี้ (0 คือพื้น)
 var plat := Vector2.ZERO       # ขอบซ้ายขวาของแท่นที่ยืน (ว่างคือไม่อยู่บนแท่น)
+var easy_dmg := 1.0            # เมืองแรกๆ มอนตีเบาลง
+var easy_slow := 1.0           # เมืองแรกๆ บอสออกท่าช้าลง (คูณเวลาคูลดาวน์)
+const HOP_DOWN_RANGE := 4.0     # ตัวละครเข้ามาใกล้ในระยะนี้ มอนบนแท่นกระโดดลงพื้น
 var ai_shoot_t := 1.5
 var ai_heal_t := 2.0
 var heal_fx := 0.0             # เพิ่งฮีลเพื่อน วาดแสงเขียว
@@ -517,6 +520,9 @@ func _separate(delta: float) -> void:
 	for other in get_tree().get_nodes_in_group("monsters"):
 		if other == self or not other.on_floor():
 			continue
+		# คนละชั้น ไม่ผลักกัน
+		if absf(pos.y - other.pos.y) > 0.9:
+			continue
 		var dx: float = pos.x - other.pos.x
 		var overlap: float = body_radius + other.body_radius - absf(dx)
 		if overlap > 0.0:
@@ -543,7 +549,13 @@ func _ai(delta: float) -> void:
 	var spec: Dictionary = ROLES[role]
 	var dx: float = hero.pos.x - pos.x
 	var dir := signf(dx) if dx != 0.0 else ai_face
-	ai_cool -= delta
+	ai_cool -= delta / easy_slow
+	# ยืนบนแท่นลอยแล้วตัวละครเข้ามาใกล้อยู่ข้างล่าง กระโดดลงมาสู้บนพื้น ตีง่ายขึ้น
+	if plat != Vector2.ZERO and floor_h > 0.0 and on_floor() and absf(dx) < HOP_DOWN_RANGE and hero.pos.y < floor_h - 0.5 and not role.begins_with("boss") and state != "dead":
+		floor_h = 0.0
+		plat = Vector2.ZERO
+		vel = Vector2(dir * 2.5, 5.0)
+		return
 	# อยู่ไกลเกินระยะไล่ กระโดดเล่นอยู่กับที่
 	if aggro > 0.0 and absf(dx) > aggro:
 		_ai_idle(delta)
@@ -576,7 +588,7 @@ func _ai(delta: float) -> void:
 			ai_cool = float(spec["cool"]) * (0.65 if phase == 2 else 1.0)
 			_strike(_melee_kind(spec))
 			if absf(dx) <= float(spec["reach"]) + body_radius and absf(hero.pos.y - pos.y) < 2.5:
-				hero.take_damage(float(spec["dmg"]) * (WEAK_DMG if weak_t > 0.0 else 1.0), ai_face)
+				hero.take_damage(easy_dmg * float(spec["dmg"]) * (WEAK_DMG if weak_t > 0.0 else 1.0), ai_face)
 			if spec.has("lunge"):
 				ai_lunge_t = 0.28
 			# ฟันต่อเนื่องหลายที
@@ -616,7 +628,7 @@ func _ai_ranged(spec: Dictionary, dx: float, dir: float, delta: float) -> void:
 		vel.x = want * float(spec["speed"])
 	else:
 		vel.x = 0.0
-	ai_shoot_t -= delta
+	ai_shoot_t -= delta / easy_slow
 	if ai_shoot_t <= 0.9 and tele_t <= 0.0 and tele_kind != "shoot_wait":
 		_tele("shoot", maxf(ai_shoot_t, 0.05))
 		tele_kind = "shoot"
@@ -657,7 +669,7 @@ func _ai_rush(spec: Dictionary, dx: float, dir: float, delta: float) -> void:
 		vel.x = ai_face * float(spec["rush"])
 		if not ai_hit and absf(dx) < 0.9 + body_radius and absf(hero.pos.y - pos.y) < 1.4:
 			ai_hit = true
-			hero.take_damage(float(spec["dmg"]), ai_face)
+			hero.take_damage(easy_dmg * float(spec["dmg"]), ai_face)
 		return
 	vel.x = 0.0
 	if ai_rush_wind > 0.0:
@@ -691,7 +703,7 @@ func _ai_ultimate(delta: float) -> bool:
 			ai_ult_t = randf_range(9.0, 12.0)
 			ult_hit.emit(self)
 		return true
-	ai_ult_t -= delta
+	ai_ult_t -= delta / easy_slow
 	if ai_ult_t <= 0.0 and on_floor() and ai_state != "windup":
 		ai_ult_warn = 1.6
 		ult_warn.emit(self)
@@ -723,7 +735,7 @@ func _ai_boss_moves(spec: Dictionary, dx: float, dir: float, delta: float) -> bo
 		vel.x = ai_face * 12.0
 		if not ai_hit and absf(dx) < 1.4 + body_radius and hero.pos.y < 2.0:
 			ai_hit = true
-			hero.take_damage(float(spec["charge_dmg"]), ai_face)
+			hero.take_damage(easy_dmg * float(spec["charge_dmg"]), ai_face)
 		return true
 	# กระทืบเท้าเตรียมชาร์จ
 	if ai_charge_wind > 0.0:
@@ -746,7 +758,7 @@ func _ai_boss_moves(spec: Dictionary, dx: float, dir: float, delta: float) -> bo
 	if ai_state == "windup":
 		return false
 	if spec.has("charge_every"):
-		ai_charge_t -= delta
+		ai_charge_t -= delta / easy_slow
 		if ai_charge_t <= 0.0 and on_floor():
 			ai_charge_t = float(spec["charge_every"]) * randf_range(0.8, 1.2)
 			ai_face = dir
@@ -754,7 +766,7 @@ func _ai_boss_moves(spec: Dictionary, dx: float, dir: float, delta: float) -> bo
 			_tele("charge", 1.1)
 			return true
 	if spec.has("wave_every"):
-		ai_wave_t -= delta
+		ai_wave_t -= delta / easy_slow
 		if ai_wave_t <= 0.0 and on_floor():
 			ai_wave_t = float(spec["wave_every"]) * randf_range(0.8, 1.2)
 			ai_face = dir
@@ -762,7 +774,7 @@ func _ai_boss_moves(spec: Dictionary, dx: float, dir: float, delta: float) -> bo
 			_tele("wave", 1.1)
 			return true
 	if spec.has("teleport_every"):
-		ai_tp_t -= delta
+		ai_tp_t -= delta / easy_slow
 		if ai_tp_t <= 0.0:
 			ai_tp_t = float(spec["teleport_every"]) * randf_range(0.8, 1.2)
 			var from := position
@@ -811,7 +823,7 @@ func _ai_hop(spec: Dictionary, dx: float, dir: float) -> void:
 	if not ai_hit and absf(dx) <= float(spec["reach"]) + body_radius and absf(hero.pos.y - pos.y) < 1.4:
 		ai_hit = true
 		_strike("claw")
-		hero.take_damage(float(spec["dmg"]) * (WEAK_DMG if weak_t > 0.0 else 1.0), ai_face)
+		hero.take_damage(easy_dmg * float(spec["dmg"]) * (WEAK_DMG if weak_t > 0.0 else 1.0), ai_face)
 
 ## บอสกระโดดลอยไปหาตัวละคร ตกลงทุบพื้น ใกล้แค่ไหนโดนหมด คืน true ระหว่างกระโดด
 func _ai_slam(spec: Dictionary, dx: float, dir: float, delta: float) -> bool:
@@ -821,7 +833,7 @@ func _ai_slam(spec: Dictionary, dx: float, dir: float, delta: float) -> bool:
 			ai_cool = float(spec["cool"])
 			_strike("slam")
 			if absf(hero.pos.x - pos.x) <= float(spec["slam_reach"]) and hero.pos.y < 1.5:
-				hero.take_damage(float(spec["slam_dmg"]), signf(hero.pos.x - pos.x))
+				hero.take_damage(easy_dmg * float(spec["slam_dmg"]), signf(hero.pos.x - pos.x))
 			slammed.emit(self)
 		else:
 			vel.x = ai_hop_vx
@@ -835,7 +847,7 @@ func _ai_slam(spec: Dictionary, dx: float, dir: float, delta: float) -> bool:
 			vel.y = 12.0
 			pos.y = floor_h + 0.01
 		return true
-	ai_slam_t -= delta
+	ai_slam_t -= delta / easy_slow
 	if ai_slam_t <= 0.0 and ai_state != "windup" and on_floor():
 		ai_slam_t = float(spec["slam_every"]) * randf_range(0.8, 1.2)
 		ai_face = dir

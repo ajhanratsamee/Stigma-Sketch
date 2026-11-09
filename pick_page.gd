@@ -4,8 +4,8 @@ extends Node2D
 ## ปุ่มย้อนกลับพากลับไปเลือกตัวใหม่ ยังไม่เลือกตัวกลับหน้าคลัง
 ## กด "สร้างตัวละคร" เก็บตัวนี้เข้าคลังเป็น BASIC เลเวล 1 แล้วไปหน้าคลัง กด "ทดลองเล่น" เข้าหน้าฝึกซ้อมโดยไม่เก็บ
 
-# ซ่อน CITRUS ("spear"), ASH ("fist"), AZURE & LAPIS ("azure") ไว้ก่อน ยังไม่เปิดให้เล่น
-const CHOICES := ["cat", "mage", "bow"]
+# ซ่อน ASH ("fist"), AZURE & LAPIS ("azure") ไว้ก่อน ยังไม่เปิดให้เล่น
+const CHOICES := ["cat", "mage", "bow", "spear"]
 const X_AT := [0.14, 0.38, 0.62, 0.86, 1.1]
 const PAIR_SHADE := Color(0.32, 0.38, 0.6, 0.85)   # ตัวรองของตัวละครคู่เป็นเงา
 const SLOT_W := 0.24             # ระยะห่างตัวละคร (สัดส่วนจอ) ลากเลื่อนซ้ายขวาได้
@@ -51,11 +51,11 @@ const CLASS_BOX := {
 	"WINDSTARKER": Rect2(880.0, 78.0, 270.0, 70.0),
 	"SNIPESTARKER": Rect2(880.0, 178.0, 270.0, 70.0),
 	"MANASTARKER": Rect2(880.0, 278.0, 270.0, 70.0),
-	"TRAPSTARKER": Rect2(880.0, 278.0, 270.0, 70.0),
+	"TRAPSTARKER": Rect2(880.0, 378.0, 270.0, 70.0),
 	"GALE TEMPEST": Rect2(1190.0, 78.0, 280.0, 70.0),
 	"APEX SNIPER": Rect2(1190.0, 178.0, 260.0, 70.0),
 	"ESSENCE WEAVER": Rect2(1190.0, 278.0, 330.0, 70.0),
-	"TWILIGHT": Rect2(1190.0, 278.0, 200.0, 70.0),
+	"TWILIGHT": Rect2(1190.0, 378.0, 200.0, 70.0),
 	"PETIT TIGER": Rect2(880.0, 78.0, 270.0, 70.0),
 	"PETIT FANG": Rect2(880.0, 178.0, 270.0, 70.0),
 	"PETIT VIXEN": Rect2(880.0, 278.0, 270.0, 70.0),

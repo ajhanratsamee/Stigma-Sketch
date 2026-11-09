@@ -51,12 +51,13 @@ func _home_x() -> float:
 func _ready() -> void:
 	data = DungeonData.dungeon(dungeon_town, dungeon_index)
 	super._ready()
-	half = BOSS_HALF if is_boss_stage() else STAGE_HALF
-	hero.half_width = half
-	hero.pos.x = -half + 2.0
 	_rng.seed = 400 + dungeon_index * 10 + stage
 	var list := DungeonData.rooms(dungeon_town, dungeon_index)
 	room_data = list[clampi(stage, 0, list.size() - 1)]
+	# ห้องยาวตามข้อมูลห้อง (เมืองแรกยาวสุด) ลานบอสกว้างคงที่
+	half = BOSS_HALF if is_boss_stage() else float(room_data.get("half", STAGE_HALF))
+	hero.half_width = half
+	hero.pos.x = -half + 2.0
 	Hero.platforms = room_data.get("platforms", []).duplicate()
 	var theme := str(data.get("theme", "meadow"))
 	var painters := [[0.0, _paint_sky.bind(theme)], [0.12, _paint_far.bind(theme)], [0.4, _paint_mid.bind(theme)], [1.0, _paint_ground.bind(theme)]]
@@ -132,9 +133,14 @@ func _spawn(role: String, look: String, x: float, plat_i: int, drop: bool) -> Mo
 	var hp_now := float(spec["hp"]) * DungeonData.hp_scale(dungeon_town, dungeon_index) * (0.6 if room_data.get("type", "") == "warm" else 1.0)
 	m.half_width = half
 	m.hero = hero
-	m.aggro = 0.0 if boss_like or role in ["ranged", "rusher", "support"] else AGGRO
+	# ห้องยาว มอนกระจาย ไล่เฉพาะตอนตัวละครเข้าใกล้ ตัวยิง/พุ่ง/ซัพพอร์ตเห็นไกลกว่า
+	m.aggro = 0.0 if boss_like else (AGGRO * 1.6 if role in ["ranged", "rusher", "support"] else AGGRO)
 	m.ai_face = -1.0
 	m.ai_cool = _rng.randf_range(0.3, 1.5)
+	# เมืองแรกๆ ตีเบาลง บอสออกท่าช้าลง
+	m.easy_dmg = DungeonData.early_dmg(dungeon_town)
+	if boss_like:
+		m.easy_slow = DungeonData.early_boss_slow(dungeon_town)
 	if role == "boss_raid":
 		# บอสยักษ์ ตั้งค่าตามเมือง ตำแหน่งยืนชิดขวาหรือกลางลาน
 		var rb := m as RaidBoss
@@ -238,7 +244,7 @@ func _monster_shoot(m: Monster) -> void:
 	var shot := HairBall.new()
 	shot.position = from
 	world.add_child(shot)
-	_mob_shots.append([shot, (to - from).normalized() * MOB_SHOT_SPEED, float(Monster.ROLES[m.role].get("shot_dmg", 6.0))])
+	_mob_shots.append([shot, (to - from).normalized() * MOB_SHOT_SPEED, float(Monster.ROLES[m.role].get("shot_dmg", 6.0)) * m.easy_dmg])
 
 ## บอสยักษ์ทุบพื้น คลื่นวิ่งตามพื้นไปทางตัวละคร กระโดดข้าม
 func _raid_wave(_b: Monster, x: float, dir: float, dmg: float) -> void:
@@ -277,11 +283,11 @@ func _boss_ult(b: Monster) -> void:
 	var w := GroundWave.new()
 	w.full = true
 	w.hero = hero
-	w.dmg = 30.0
+	w.dmg = 30.0 * b.easy_dmg
 	w.position = Vector2(b.position.x, 0.0)
 	world.add_child(w)
 	if hero.pos.y < 0.3:
-		hero.take_damage(30.0, signf(hero.pos.x - b.pos.x), "ult")
+		hero.take_damage(30.0 * b.easy_dmg, signf(hero.pos.x - b.pos.x), "ult")
 
 ## ลูกขนแมวที่ตัวยิงไกลยิง
 class HairBall extends Node2D:

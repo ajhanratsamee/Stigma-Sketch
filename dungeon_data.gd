@@ -182,40 +182,85 @@ static func _made(town: int, index: int) -> Dictionary:
 const FODDER := ["cat_mochi", "cat_mochi", "cat_mochi", "cat_ghost", "cat_mochi"]
 const MID := ["cat_mochi", "cat_long", "cat_box", "cat_ghost", "cat_puff"]
 
+## ห้องยาว มอนกระจายห่างๆ ไม่ลายตา เมืองแรกมอนน้อยสุดและห้องยาวสุด
+static func room_half(town: int) -> float:
+	return 52.0 if town == 0 else 44.0
+
+static func _density(town: int) -> float:
+	return 0.5 if town == 0 else 0.7
+
+## จำนวนตัวหลังคูณความหนาแน่น อย่างน้อย 1
+static func _n(base: int, town: int) -> int:
+	return maxi(1, int(round(float(base) * _density(town))))
+
+## วางมอนบนพื้นห่างเท่าๆ กันตลอดช่วง x0..x1 (ตัวบนแท่นไม่ขยับ)
+static func _spread(list: Array, x0: float, x1: float) -> Array:
+	var ground := []
+	for e in list:
+		if int(e[3]) < 0:
+			ground.append(e)
+	var n := ground.size()
+	for i in n:
+		var t := (float(i) + 0.5) / float(maxi(n, 1))
+		ground[i][2] = lerpf(x0, x1, t)
+	return list
+
+## แท่นลอยกระจายตลอดห้องยาว ต่ำเป็นหลัก มีสูงบ้าง
+static func _plats(h: float) -> Array:
+	var out := []
+	var x := -h + 10.0
+	var k := 0
+	while x < h - 10.0:
+		out.append([x, x + 4.0, 1.8])
+		if k % 3 == 1:
+			out.append([x + 5.5, x + 8.5, 3.4])
+		x += 15.0
+		k += 1
+	return out
+
 static func rooms(town: int, index: int) -> Array:
 	var d := dungeon(town, index)
 	if d.is_empty():
 		return []
 	var fod: String = FODDER[(index + town) % FODDER.size()]
 	var more := mini(index, 6)  # ดันลึกเพิ่มมอน
-	var plats := [[-5.0, -1.0, 1.8], [3.0, 7.0, 1.8], [-1.0, 2.0, 3.6], [13.0, 17.0, 1.8]]
+	var h := room_half(town)
+	var plats := _plats(h)
 	var out := []
-	# ห้อง 1 วอร์มอัพ ตัวเล็กเลือดน้อย
+	# ห้อง 1 วอร์มอัพ ตัวเล็กเลือดน้อย กระจายทั้งห้อง
 	var w1 := []
-	for i in 7 + more:
-		w1.append(["hopper", fod, -8.0 + float(i) * 3.4, -1])
-	out.append({"type": "warm", "waves": [w1], "platforms": [], "spikes": []})
-	# ห้อง 2 ต่อสู้หลัก แทงค์ขวางกลาง ซัพพอร์ตหลบหลัง ตัวยิงบนแท่น ระลอกสองตัวพุ่งชน
-	var a1 := [["tank", "cat_box", 4.0, -1], ["tank", "cat_box", 9.0, -1], ["support", "cat_long", 13.0, -1], ["ranged", "cat_cyclops", 5.0, 1], ["ranged", "cat_cyclops", 0.5, 2]]
-	for i in 4 + more:
-		a1.append(["hopper", fod, -6.0 + float(i) * 4.5, -1])
-	var a2 := [["rusher", "cat_puff", 17.0, -1], ["rusher", "cat_puff", 19.0, -1], ["rusher", "cat_puff", -18.0, -1], ["ranged", "cat_ghost", 15.0, 3]]
-	for i in 3 + more:
-		a2.append(["hopper", fod, -4.0 + float(i) * 5.0, -1])
-	out.append({"type": "core", "waves": [a1, a2], "platforms": plats, "spikes": []})
-	# ห้อง 3 กับดักหนาม ต้องหลบไปพร้อมสู้ ตัวยิงบนแท่น ซัพพอร์ตสองตัว
-	var t1 := [["ranged", "cat_cyclops", -3.0, 0], ["ranged", "cat_ghost", 15.0, 3], ["tank", "cat_box", 8.0, -1]]
-	for i in 4 + more:
-		t1.append(["hopper", fod, -9.0 + float(i) * 5.5, -1])
-	var t2 := [["rusher", "cat_puff", 18.0, -1], ["rusher", "cat_puff", 20.0, -1], ["support", "cat_long", 12.0, -1], ["support", "cat_long", -12.0, -1]]
-	for i in 2 + more:
-		t2.append(["hopper", fod, 2.0 + float(i) * 4.0, -1])
-	out.append({"type": "trap", "waves": [t1, t2], "platforms": plats, "spikes": [-9.0, 1.0, 10.5]})
+	for i in _n(7 + more, town):
+		w1.append(["hopper", fod, 0.0, -1])
+	out.append({"type": "warm", "half": h, "waves": [_spread(w1, -h + 12.0, h - 6.0)], "platforms": [], "spikes": []})
+	# ห้อง 2 ต่อสู้หลัก แทงค์ ซัพพอร์ต ตัวยิงบนแท่นแค่ตัวเดียว ระลอกสองตัวพุ่งชน
+	var a1 := [["tank", "cat_box", 0.0, -1], ["support", "cat_long", 0.0, -1], ["ranged", "cat_cyclops", 0.0, 1]]
+	if town > 0:
+		a1.append(["tank", "cat_box", 0.0, -1])
+	for i in _n(4 + more, town):
+		a1.append(["hopper", fod, 0.0, -1])
+	var a2 := [["rusher", "cat_puff", 0.0, -1], ["rusher", "cat_puff", 0.0, -1]]
+	for i in _n(3 + more, town):
+		a2.append(["hopper", fod, 0.0, -1])
+	out.append({"type": "core", "half": h, "waves": [_spread(a1, -h + 12.0, h - 6.0), _spread(a2, -h + 20.0, h - 4.0)], "platforms": plats, "spikes": []})
+	# ห้อง 3 กับดักหนาม ต้องหลบไปพร้อมสู้ หนามกระจายตามห้อง
+	var t1 := [["ranged", "cat_ghost", 0.0, 3], ["tank", "cat_box", 0.0, -1]]
+	for i in _n(4 + more, town):
+		t1.append(["hopper", fod, 0.0, -1])
+	var t2 := [["rusher", "cat_puff", 0.0, -1], ["support", "cat_long", 0.0, -1]]
+	for i in _n(2 + more, town):
+		t2.append(["hopper", fod, 0.0, -1])
+	var spikes := []
+	var sx := -h + 16.0
+	while sx < h - 8.0:
+		spikes.append(sx)
+		sx += 18.0
+	out.append({"type": "trap", "half": h, "waves": [_spread(t1, -h + 12.0, h - 6.0), _spread(t2, -h + 20.0, h - 4.0)], "platforms": plats, "spikes": spikes})
 	# ห้อง 4 มินิบอส เลือดเยอะ เกราะหนา ท่าง่าย มีลูกน้องนิดหน่อย
+	var mh := h * 0.6
 	var m1 := [["midboss", MID[(index + town) % MID.size()], 8.0, -1]]
-	for i in 3 + more:
-		m1.append(["hopper", fod, -4.0 + float(i) * 6.0, -1])
-	out.append({"type": "mid", "waves": [m1], "platforms": [[-12.0, -8.0, 1.8], [8.0, 12.0, 1.8]], "spikes": []})
+	for i in _n(3 + more, town):
+		m1.append(["hopper", fod, -mh + 10.0 + float(i) * 6.0, -1])
+	out.append({"type": "mid", "half": mh, "waves": [m1], "platforms": [[-12.0, -8.0, 1.8], [14.0, 18.0, 1.8]], "spikes": []})
 	# ห้อง 5 บอส ลานกว้าง ไม่มีลูกน้อง มีแท่นไว้หลบท่าใหญ่ทั้งลาน
 	var boss_look := str(d.get("boss", "boss_club"))
 	if not raid(town, index).is_empty():
@@ -258,6 +303,20 @@ static func stage_monsters(town: int, index: int, stage: int) -> Array:
 			out.append(m[1])
 	return out
 
+## เมืองแรกๆ ง่ายขึ้นสำหรับผู้เล่นใหม่: เลือดมอน (เมือง 1 −40% เมือง 2 −25% เมือง 3 −8% จากนั้นเท่าเดิม)
+const EARLY_HP := [0.6, 0.75, 0.92]
+const EARLY_DMG := [0.7, 0.85, 0.95]
+const EARLY_BOSS_SLOW := [1.35, 1.2, 1.05]
+
+static func early_hp(town: int) -> float:
+	return EARLY_HP[town] if town >= 0 and town < EARLY_HP.size() else 1.0
+
+static func early_dmg(town: int) -> float:
+	return EARLY_DMG[town] if town >= 0 and town < EARLY_DMG.size() else 1.0
+
+static func early_boss_slow(town: int) -> float:
+	return EARLY_BOSS_SLOW[town] if town >= 0 and town < EARLY_BOSS_SLOW.size() else 1.0
+
 ## ดันเจี้ยนยิ่งลึกมอนยิ่งอึด
 static func hp_scale(town: int, index: int) -> float:
-	return LevelData.power(dungeon_level(town, index)) * (1.0 + 0.08 * float(index))
+	return LevelData.power(dungeon_level(town, index)) * (1.0 + 0.08 * float(index)) * early_hp(town)

@@ -71,7 +71,11 @@ func _draw_label() -> void:
 	UiStyle.fill(_label, r, Color(1.0, 0.99, 0.96, 0.85), 14.0)
 	_label.draw_string(font, Vector2(-w * 0.5, y + 12.0), nm, HORIZONTAL_ALIGNMENT_LEFT, -1.0, NAME_SIZE, UiStyle.INK)
 	if talk_mark:
-		var c := Vector2(0.0, y - 64.0 + sin(_t * 4.0) * 4.0)
-		_label.draw_circle(c, 18.0, Color(1.0, 0.75, 0.25))
-		_label.draw_arc(c, 18.0, 0.0, TAU, 24, UiStyle.INK, 2.5, true)
-		_label.draw_string(font, c + Vector2(-5.0, 10.0), "!", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 28, UiStyle.INK)
+		# เมืองแรกๆ เครื่องหมายใหญ่ขึ้น ผู้เล่นใหม่เห็นชัด
+		var k := 1.6 if WalkPage.current_town <= 1 else 1.0
+		var c := Vector2(0.0, y - 64.0 * k + sin(_t * 4.0) * 4.0 * k)
+		_label.draw_circle(c, 18.0 * k, Color(1.0, 0.75, 0.25))
+		_label.draw_arc(c, 18.0 * k, 0.0, TAU, 24, UiStyle.INK, 2.5 * k, true)
+		var fs := int(28.0 * k)
+		var mw := font.get_string_size("!", HORIZONTAL_ALIGNMENT_LEFT, -1.0, fs).x
+		_label.draw_string(font, c + Vector2(-mw * 0.5, float(fs) * 0.36), "!", HORIZONTAL_ALIGNMENT_LEFT, -1.0, fs, UiStyle.INK)

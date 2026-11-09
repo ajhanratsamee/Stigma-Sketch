@@ -21,6 +21,7 @@ const DASH_TIME := 0.3
 const ACTIVE_START := 0.6
 const BODY_SEPARATION := 1.0
 const PUSH_SPEED := 14.0
+const LAYER_GAP := 0.9          # ต่างระดับเกินนี้ถือว่าอยู่คนละชั้น ไม่ชนกัน
 const HURT_TIME := 0.45
 const FLASH_TIME := 0.2
 const INVULN_TIME := 0.8
@@ -2144,6 +2145,9 @@ func _push_out_of_monsters(delta: float, from_x: float) -> void:
 		return
 	for e in get_tree().get_nodes_in_group("monsters"):
 		if not e.on_floor():
+			continue
+		# อยู่คนละชั้น (มอนบนแท่นลอย เราอยู่ล่าง หรือกลับกัน) ไม่กันตัวกัน เดินลอดได้
+		if absf(pos.y - float(e.pos.y)) > LAYER_GAP:
 			continue
 		var dx: float = pos.x - e.pos.x
 		var gap: float = BODY_SEPARATION - 0.5 + e.body_radius

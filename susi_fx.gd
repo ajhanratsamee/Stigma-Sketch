@@ -21,6 +21,7 @@ const COLORS := {
 	"mana": [Color(0.35, 0.6, 1.0), Color(0.85, 0.95, 1.0)],
 	"ore": [Color(1.0, 0.74, 0.87), Color(1.0, 0.95, 0.98)],
 	"silver": [Color(0.75, 0.8, 0.9), Color(1.0, 1.0, 1.0)],
+	"sun": [Color(1.0, 0.84, 0.3), Color(1.0, 0.97, 0.75)],
 }
 
 var kind := "fire"

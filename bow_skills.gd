@@ -60,6 +60,21 @@ const BOW_DEFS := {
 	"bw_sk_tw_twigs5": {"cd": 8.0, "trap": true, "air": true},
 	"bw_sk_tw_orb": {"cd": 6.0, "trap": true, "air": true},
 	"bw_sk_tw_six": {"cd": 10.0},
+	# MANASTARKER  (มานาสามสี ฟ้า แดง เหลือง)
+	"bw_sk_mn_tri": {"cd": 5.0, "air": true},
+	"bw_sk_mn_beam": {"cd": 6.0, "hold": true},
+	"bw_sk_mn_pool": {"cd": 20.0},
+	"bw_sk_mn_swap": {"cd": 3.0, "air": true},
+	"bw_sk_mn_orbs": {"cd": 16.0},
+	"bw_sk_mn_mines": {"cd": 10.0},
+	"bw_sk_mn_chain": {"cd": 8.0, "air": true},
+	# ESSENCE WEAVER
+	"bw_sk_es_fuse": {"cd": 14.0},
+	"bw_sk_es_rain": {"cd": 18.0},
+	"bw_sk_es_gravity": {"cd": 15.0},
+	"bw_sk_es_dive": {"cd": 10.0, "air": true},
+	"bw_sk_es_spirit": {"cd": 22.0},
+	"bw_sk_es_nova": {"cd": 25.0, "hold": true},
 }
 const BOW_MP := {
 	"bw_sk_dodge_shot": 30.0,
@@ -108,6 +123,19 @@ const BOW_MP := {
 	"bw_sk_tw_twigs5": 100.0,
 	"bw_sk_tw_orb": 80.0,
 	"bw_sk_tw_six": 150.0,
+	"bw_sk_mn_tri": 60.0,
+	"bw_sk_mn_beam": 40.0,
+	"bw_sk_mn_pool": 150.0,
+	"bw_sk_mn_swap": 50.0,
+	"bw_sk_mn_orbs": 120.0,
+	"bw_sk_mn_mines": 100.0,
+	"bw_sk_mn_chain": 90.0,
+	"bw_sk_es_fuse": 200.0,
+	"bw_sk_es_rain": 250.0,
+	"bw_sk_es_gravity": 180.0,
+	"bw_sk_es_dive": 140.0,
+	"bw_sk_es_spirit": 220.0,
+	"bw_sk_es_nova": 300.0,
 }
 const TAP_TIME := 30.0          # 35.2 บัพตีแล้วได้มานาเพิ่ม
 const TAP_MP := 4.0
@@ -116,6 +144,10 @@ const REVIVE_CD := 120.0        # 60.2 ไม่ตายทันที
 const REVIVE_TIME := 10.0
 const HASTE := 1.2              # 15.4 ความเร็วโจมตี
 const VIGOR_HP := 60.0          # 35.4 เลือดสูงสุดเพิ่ม
+const MANA_REGEN := 1.6         # MANA 15.4 มานาฟื้นเร็วขึ้น
+const ECHO_MP := 2.0            # ESSENCE 60.1 สกิลโดนได้มานาคืน
+const LUCKY_CHANCE := 0.15      # ESSENCE 60.2 โอกาสใช้สกิลฟรี
+const TRI := ["fire", "ice", "sun"]
 
 var _act_tw: Tween
 var _charge := {}               # 30.1 ชาร์จ {t max}
@@ -195,6 +227,8 @@ func _line_colors() -> Array:
 		acc = Color(0.8, 0.62, 0.38)
 	elif cls == "TWILIGHT":
 		acc = Color(0.75, 0.55, 1.0)
+	elif cls in ["MANASTARKER", "ESSENCE WEAVER"]:
+		acc = Color(0.6, 0.85, 1.0)
 	return [Color(0.55, 0.88, 0.52), acc]
 
 func _bfx(kind: String, at: Vector2, size: float, life := 0.7, parent: Node = null) -> BowSkillFx:
@@ -430,6 +464,9 @@ func _do_ws_burst() -> void:
 	_act("bw_z1", 1.5, {"wind": 0.95, "strike": 0.98})
 
 func _release_burst() -> void:
+	if _charge.get("nova", false):
+		_release_nova()
+		return
 	var k := clampf(float(_charge["t"]) / float(_charge["max"]), 0.0, 1.0)
 	var n: SusiFx = _charge.get("fx")
 	if is_instance_valid(n):
@@ -644,6 +681,195 @@ func _do_ap_cluster() -> void:
 
 var _ring_x := 0.0
 
+# ---------------------------------------------------------------- MANASTARKER
+var _pool_x := 0.0               # MANA 25.1 ตำแหน่งบ่อมานา
+var _swap_i := -1                # MANA 30.1 ธาตุที่ติดลูกศรอยู่
+var _beam_i := 0                 # MANA 15.3 ธาตุของลำแสงรอบนี้
+
+## ผลพิเศษของแต่ละธาตุ แดงติดไฟ ฟ้าแช่แข็งสั้นๆ เหลืองชะงักแรง
+func _el_extra(el: String) -> Dictionary:
+	if el == "fire":
+		return {"burn": "fire"}
+	if el == "ice":
+		return {"mn_freeze": true, "mn_freeze_t": 0.9}
+	return {"stun": 1.1, "real_stun": true}
+
+func _hand() -> Vector2:
+	return hero.position + Vector2(_f() * 65.0, -85.0)
+
+## 15.2 ยิงศรมานาสามสีพร้อมกัน แดงติดไฟ ฟ้าแช่แข็ง เหลืองชะงัก
+func _do_mn_tri() -> void:
+	_act("bw_x1", 0.4)
+	_later(0.1, func() -> void:
+		for i in 3:
+			var el: String = TRI[i]
+			var ang := deg_to_rad(-9.0 + float(i) * 9.0)
+			_proj("arcane", el, _hand() + Vector2(0.0, float(i - 1) * 16.0), Vector2(_f() * cos(ang), sin(ang)) * 1250.0, 0.42 * U, 20.0, "flinch", {"life": 0.8, "hits": 2, "extra": _el_extra(el)}))
+
+## 15.3 กดค้าง ยิงลำแสงมานาไปด้านหน้า สลับสีไปเรื่อยๆ
+func _do_mn_beam() -> void:
+	_beam_i = 0
+	_start_channel("bw_sk_mn_beam", 0.16, 3.0, 30.0, func() -> void:
+		var el: String = TRI[_beam_i % 3]
+		_beam_i += 1
+		_act("bw_x1", 0.16, {"wind": 0.1, "strike": 0.2})
+		var from := _hand()
+		var n := _fx("beam", el, from, 26.0, 0.22)
+		n.angle = 0.0 if _f() > 0.0 else PI
+		n.length = 6.0 * U
+		n.ry = 24.0
+		for m in _in_ellipse(from + Vector2(_f() * 3.0 * U, 0.0), 3.0 * U, 0.6 * U):
+			_hit(m, 5.0, "light", _f(), _el_extra(el) if _beam_i % 4 == 0 else {}))
+
+## 25.1 วางบ่อมานาใต้เท้า มอนในบ่อโดนดาเมจถี่ ยืนในบ่อฟื้นมานาเพิ่ม
+func _do_mn_pool() -> void:
+	_act("bw_z1", 0.3, {"wind_hand": Vector3(0.2, -0.45, 0.1), "end_hand": Vector3(0.25, -0.55, 0.1)})
+	_pool_x = hero.position.x
+	var n := _area("circle", "ice", Vector2(_pool_x, -6.0), 2.2 * U, 6.0, 5.0, "light", {"tick": 0.4})
+	var node = n.get("node")
+	if node is SusiFx:
+		(node as SusiFx).rx = 2.2 * U
+		(node as SusiFx).ry = 0.45 * U
+	buffs["mn_pool"] = 6.0
+	for i in 3:
+		_later(0.15 * float(i), func() -> void: _fx("poof", TRI[i], Vector2(_pool_x + float(i - 1) * 70.0, -40.0), 34.0, 0.45))
+	page.bars.notice("อยู่ในบ่อมานา ฟื้นมานาเร็วขึ้น")
+
+## 30.1 สลับธาตุที่ลูกศรปกติ แดงติดไฟ ฟ้ามีโอกาสแช่แข็ง เหลืองแรงขึ้นและได้มานาคืน
+func _do_mn_swap() -> void:
+	_act("bw_z1", 0.25)
+	_swap_i = (_swap_i + 1) % 3
+	for k in ["mn_fire", "mn_ice", "mn_sun"]:
+		buffs.erase(k)
+	var el: String = TRI[_swap_i]
+	buffs["mn_" + el] = 15.0
+	_fx("ring", el, hero.position + Vector2(0.0, -70.0), 60.0, 0.5)
+	_fx("poof", el, _hand(), 36.0, 0.4)
+	page.bars.notice(["ลูกศรธาตุไฟ ติดไฟ", "ลูกศรธาตุน้ำแข็ง มีโอกาสแช่แข็ง", "ลูกศรธาตุแสง แรงขึ้น ได้มานาคืน"][_swap_i])
+
+## 30.2 ลูกแก้วมานาสามสีหมุนรอบตัว 8 วิ
+func _do_mn_orbs() -> void:
+	_act("bw_z1", 0.3)
+	var nodes := []
+	for el in TRI:
+		nodes.append(_fx("storm", el, hero.position, 30.0, 8.2, false))
+	_add({"type": "orbit", "nodes": nodes, "life": 8.0, "r": 60.0, "dmg": 7.0, "eff": "light", "tick": 0.35, "extra": {"burn": "fire"}})
+
+## 35.1 ปาลูกมานาสามสีลงพื้นด้านหน้า ระเบิดทีละลูก
+func _do_mn_mines() -> void:
+	_act("bw_x1", 0.4, {"wind_aim": Vector2(-30.0, 0.0), "end_aim": Vector2(-40.0, 0.0)})
+	for i in 3:
+		var el: String = TRI[i]
+		var at := Vector2(hero.position.x + _f() * (1.6 + float(i) * 1.5) * U, -20.0)
+		_later(0.12 + float(i) * 0.08, func() -> void:
+			var r := _fx("ring", el, at, 0.8 * U, 0.9)
+			r.rx = 0.8 * U
+			r.ry = 0.25 * U
+			_fx("poof", el, at + Vector2(0.0, -20.0), 30.0, 0.35))
+		_later(0.9 + float(i) * 0.22, func() -> void:
+			_boom(at + Vector2(0.0, -40.0), 1.5 * U, 1.1 * U, 34.0, "strong", el, _el_extra(el)))
+
+## 40.1 ศรประกายเหลือง ชิ่งไปมอนใกล้ๆ ต่อกันได้ 6 ตัว
+func _do_mn_chain() -> void:
+	_act("bw_x1", 0.4)
+	var from := _hand()
+	var first := _nearest(from + Vector2(_f() * 4.0 * U, 0.0), 7.0 * U)
+	if first == null:
+		_proj("arcane", "sun", from, Vector2(_f() * 1400.0, 0.0), 0.45 * U, 26.0, "flinch", {"life": 0.6, "hits": 1})
+		return
+	var pts := PackedVector2Array([from])
+	var visited := []
+	var cur := first
+	for i in 6:
+		pts.append(_mc(cur))
+		_hit(cur, 22.0 + 4.0 * float(i), "flinch", _f(), {"stun": 0.9, "real_stun": true})
+		visited.append(cur)
+		var nxt := _nearest(_mc(cur), 4.5 * U, visited)
+		if nxt == null:
+			break
+		cur = nxt
+	var n := _fx("chain", "sun", Vector2.ZERO, 20.0, 0.45)
+	n.points = pts
+
+# ---------------------------------------------------------------- ESSENCE WEAVER
+## 35.2 ลูกแก้วสามสีพุ่งไปรวมกันด้านหน้า ระเบิดใหญ่ ติดไฟและแช่แข็ง
+func _do_es_fuse() -> void:
+	_act("bw_x4", 0.55, {"wind": 0.6, "strike": 0.7})
+	var at := Vector2(hero.position.x + _f() * 3.5 * U, -1.2 * U)
+	for i in 3:
+		var from := hero.position + Vector2(_f() * 40.0, -85.0 + float(i - 1) * 70.0)
+		_proj("arcane", TRI[i], from, (at - from) / 0.4, 0.5 * U, 0.0, "none", {"life": 0.4, "no_touch": true})
+	_later(0.42, func() -> void:
+		_fx("ring", "sun", at, 1.6 * U, 0.6)
+		_boom(at, 2.8 * U, 1.8 * U, 70.0, "knock", "fire", {"burn": "fire", "mn_freeze": true, "mn_freeze_t": 1.2}))
+
+## 35.3 ยิงขึ้นฟ้า ฝนมานาสามสีตกลงทั่วด้านหน้า
+func _do_es_rain() -> void:
+	_act("bw_x1", 0.5, {"wind_aim": Vector2(-60.0, 0.0), "end_aim": Vector2(-80.0, 0.0)})
+	var x0 := hero.position.x + _f() * 1.0 * U
+	for i in 18:
+		var k := float(i)
+		_later(0.3 + k * 0.07, func() -> void:
+			var el: String = TRI[i % 3]
+			var x := x0 + _f() * randf_range(0.0, 6.5) * U
+			_proj("arcane", el, Vector2(x, -7.0 * U), Vector2(_f() * 60.0, 900.0), 0.38 * U, 0.0, "flinch", {"life": 3.0, "gravity": 1500.0, "ground_end": true, "boom": [1.1 * U, 0.8 * U], "dmg": 16.0, "no_touch": true, "extra": _el_extra(el)}))
+
+## 45.1 ปริซึมดึงมอนเข้ามารวมกัน 1.8 วิ แล้วระเบิดสามสี
+func _do_es_gravity() -> void:
+	_act("bw_x4", 0.45)
+	var at := Vector2(hero.position.x + _f() * 3.2 * U, 0.0)
+	_later(0.2, func() -> void:
+		var a := _area("circle", "sun", at, 2.0 * U, 1.8, 4.0, "light", {"tick": 0.3, "pull": 5.5 * U})
+		var node = a.get("node")
+		if node is SusiFx:
+			(node as SusiFx).rx = 2.0 * U
+			(node as SusiFx).ry = 0.5 * U)
+	for i in 3:
+		_later(2.0 + float(i) * 0.14, func() -> void:
+			var el: String = TRI[i]
+			_boom(at + Vector2(0.0, -60.0), (1.8 + float(i) * 0.5) * U, 1.4 * U, 30.0, "launch" if i == 2 else "strong", el, _el_extra(el)))
+
+## 45.2 กระโดดขึ้น ยิงศรสามสีเฉียงลง ระเบิดที่พื้น ใช้กลางอากาศได้
+func _do_es_dive() -> void:
+	if hero.on_floor():
+		_hop(0.9)
+	_act("bw_adx1", 0.7, {"wind": 0.5, "strike": 0.6, "hover": true})
+	_later(0.3, func() -> void:
+		for i in 3:
+			var el: String = TRI[i]
+			var dir := Vector2(_f(), 0.55 + float(i) * 0.25).normalized()
+			_proj("arcane", el, _hand(), dir * 1500.0, 0.5 * U, 0.0, "none", {"life": 1.5, "ground_end": true, "boom": [1.6 * U, 1.1 * U], "dmg": 40.0, "no_touch": true, "extra": _el_extra(el)}))
+
+## 50.1 เรียกวิญญาณแมวสามสี ไล่ตามมอนเอง 8 วิ
+func _do_es_spirit() -> void:
+	_act("bw_z1", 0.35)
+	for i in 3:
+		var el: String = TRI[i]
+		_later(0.1 * float(i), func() -> void:
+			_fx("poof", el, hero.position + Vector2(float(i - 1) * 60.0, -130.0), 36.0, 0.4)
+			_proj("storm", el, hero.position + Vector2(float(i - 1) * 60.0, -130.0), Vector2(_f() * 380.0, float(i - 1) * 80.0), 26.0, 6.0, "light", {"life": 8.0, "homing": 420.0, "tick": 0.45, "hits": 999, "bounce": true, "extra": _el_extra(el)}))
+
+## 55.1 กดค้างรวมมานาสามสี ปล่อยเป็นวงระเบิดใหญ่รอบตัว ยิ่งชาร์จยิ่งกว้าง
+func _do_es_nova() -> void:
+	_charge = {"t": 0.0, "max": 1.6, "nova": true, "fx": _fx("charge", "sun", hero.position + Vector2(0.0, -20.0), 50.0, 3.0, false)}
+	_act("bw_x4", 1.8, {"wind": 0.95, "strike": 0.98})
+
+func _release_nova() -> void:
+	var k := clampf(float(_charge["t"]) / float(_charge["max"]), 0.0, 1.0)
+	var n: SusiFx = _charge.get("fx")
+	if is_instance_valid(n):
+		n.queue_free()
+	_charge = {}
+	hero.plain_swing = 0.0
+	_act("bw_x4", 0.3, {"wind": 0.1, "strike": 0.2})
+	var c := hero.position + Vector2(0.0, -70.0)
+	for i in 3:
+		var el: String = TRI[i]
+		_later(float(i) * 0.15, func() -> void:
+			var w := (2.2 + 1.4 * k + float(i) * 0.8) * U
+			_fx("ring", el, c, w * 0.7, 0.6)
+			_boom(c, w, w * 0.45, 30.0 + 45.0 * k, "knock" if k > 0.6 and i == 2 else "strong", el, _el_extra(el)))
+
 # ---------------------------------------------------------------- TRAPSTARKER / TWILIGHT
 var _stakes: Array = []          # TWILIGHT 35.2 หมุดที่ปักไว้ [ตำแหน่ง โหนด]
 var _trap_uses: Array = []       # TWILIGHT 60.2 เวลาที่ใช้สกิลกับดัก
@@ -685,6 +911,11 @@ func _after_cast(id: String, d: Dictionary) -> void:
 			if absf(m.position.x - hero.position.x) <= page._screen_w():
 				m.weak_t = maxf(m.weak_t, 6.0)
 				m.slow_t = maxf(m.slow_t, 6.0)
+	# ESSENCE 60.2 มีโอกาส 15% ใช้สกิลฟรี ได้มานาคืน
+	if has("bw_sk_es_lucky") and randf() < LUCKY_CHANCE:
+		hero.mp = minf(hero.mp + cost(id), hero.mp_max())
+		_fx("poof", "sun", hero.position + Vector2(0.0, -110.0), 40.0, 0.4)
+		page.bars.notice("Lucky Whisker! ใช้ฟรี")
 
 ## 15.1 กระโดดปากิ่งไม้กับดักหลายอัน ระเบิดต่อเนื่อง
 func _do_tr_twigs() -> void:
@@ -893,7 +1124,11 @@ func _tick_landing(o: Dictionary) -> void:
 func _apply_passives(delta: float) -> void:
 	hero.mp_bonus = Stats.MP_UP if has("bw_sk_gt_vigor") else 0.0
 	hero.hp_bonus = VIGOR_HP if has("bw_sk_gt_vigor") else 0.0
-	hero.regen_mult = 1.0
+	# MANA 15.4 มานาฟื้นเร็วขึ้น
+	hero.regen_mult = MANA_REGEN if has("bw_sk_mn_flow") else 1.0
+	# MANA 25.1 ยืนในบ่อมานา ฟื้นมานาเพิ่ม
+	if buffs.has("mn_pool") and absf(hero.position.x - _pool_x) <= 2.2 * U:
+		hero.mp = minf(hero.mp + 25.0 * delta, hero.mp_max())
 	hero.speed_bonus = Stats.SPEED_MULT * 1.08 if has("bw_sk_gt_swift") else 1.0
 	page.atk_speed = HASTE if has("bw_sk_ws_haste") else 1.0
 	hero.block_chance = 0.11 if has("bw_sk_ap_block") else 0.0
@@ -913,6 +1148,23 @@ func on_strike(m: Monster, h: Dictionary) -> void:
 		_fx("ring", "redwind", _mc(m), 40.0, 0.6)
 	if h.get("freeze_arrow", false):
 		m.freeze_ice(2.0)
+	if h.get("mn_freeze", false):
+		m.freeze_ice(float(h.get("mn_freeze_t", 1.0)))
+	# MANA 30.1 ธาตุติดลูกศรปกติ
+	if not h.get("skill", false):
+		if buffs.has("mn_fire"):
+			m.burn_kind = "fire"
+			m.burn_t = Monster.BURN_TIME
+		elif buffs.has("mn_ice") and randf() < 0.25:
+			m.freeze_ice(0.8)
+		elif buffs.has("mn_sun"):
+			hero.mp = minf(hero.mp + 3.0, hero.mp_max())
+	# ESSENCE 60.1 สกิลโดนได้มานาคืน (ตัวละไม่ถี่เกิน)
+	elif has("bw_sk_es_echo"):
+		var now := Time.get_ticks_msec()
+		if now - int(m.get_meta("es_echo", -1000)) >= 250:
+			m.set_meta("es_echo", now)
+			hero.mp = minf(hero.mp + ECHO_MP, hero.mp_max())
 
 ## SNIPE 15.4 ลูกศรไปได้ไกลขึ้น
 func mod_shot(shot: Array) -> void:
@@ -927,6 +1179,14 @@ func dmg_mult(m: Monster, h: Dictionary) -> float:
 	# APEX 35.4 การโจมตีปกติแรงขึ้น 15%
 	if has("bw_sk_ap_eagle") and not h.get("skill", false):
 		k *= 1.15
+	# MANA 30.1 ธาตุเหลือง ลูกศรปกติแรงขึ้น
+	if buffs.has("mn_sun") and not h.get("skill", false):
+		k *= 1.1
+	# ESSENCE 35.4 สกิลแรงขึ้น เป้าติดไฟหรือแข็งอยู่แรงขึ้นอีก
+	if has("bw_sk_es_attune") and h.get("skill", false):
+		k *= 1.15
+		if m.burn_t > 0.0 or m.ice_t > 0.0:
+			k *= 1.15
 	return k
 
 ## 60.2 เลือดหมดไม่ตายทันที ถอยหลังไกลแล้วฟื้นเลือด 10 วิ

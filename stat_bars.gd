@@ -44,6 +44,26 @@ var _shown := ""
 var _notice := ""
 var _notice_t := 0.0
 
+var guide: GuideHud
+
+## ตัวช่วยผู้เล่นใหม่ (เป้าหมาย ลูกศรชี้ทาง คำใบ้ครั้งแรก) ติดไปกับหน้าที่มีแถบเลือด
+func _ready() -> void:
+	var p := get_parent()
+	if p != null and not p.is_node_ready():
+		p.ready.connect(_add_guide, CONNECT_ONE_SHOT)
+	else:
+		_add_guide()
+
+func _add_guide() -> void:
+	var page := get_parent() as WalkPage
+	if page == null or not GuideHud.wanted():
+		return
+	guide = GuideHud.new()
+	guide.page = page
+	page.add_child(guide)
+	if page.pad != null:
+		page.pad.captions = WalkPage.current_town <= 1 and WalkPage.chosen_level <= 15
+
 ## ข้อความสั้นใต้การ์ด เช่น เลเวลไม่ถึง
 func notice(text: String) -> void:
 	_notice = text

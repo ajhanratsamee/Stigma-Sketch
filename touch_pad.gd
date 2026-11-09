@@ -47,6 +47,8 @@ const LETTERS := {
 }
 
 var show_down := false
+var captions := false           # คำอธิบายเหนือปุ่มสำหรับผู้เล่นใหม่ (เมืองแรกๆ เลเวลยังน้อย)
+const CAPTION := {"z": "ตี", "x": "ท่าพิเศษ", "jump": "กระโดด", "pswap": "สลับตัว"}
 var use_stick := true           # เดินด้วยจอยสติ๊กลอยฝั่งซ้าย ไม่มีปุ่มซ้าย ขวา ลง
 var stick: Joystick             # นิ้วที่จับจอยอยู่ ปุ่มไม่สนใจ
 var stick_home := Vector2.ZERO  # จุดพักของจอย
@@ -191,6 +193,19 @@ func _draw_v() -> void:
 			pts.append(v_center + p * GLYPH * 0.75)
 		Sketch.line(self, pts, 81, 3.4, 0.3)
 
+func _draw_captions() -> void:
+	var font := Sketch.font()
+	for id in CAPTION:
+		if not buttons.has(id):
+			continue
+		var c: Vector2 = buttons[id]
+		var word: String = CAPTION[id]
+		var w := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, UiStyle.SMALL).x
+		# Z X ใต้ตัวอักษรในปุ่ม  JUMP V เหนือปุ่ม
+		var at := c + Vector2(-w * 0.5, _radius(id) * 0.72) if id in ["z", "x"] else c + Vector2(-w * 0.5, -_radius(id) - 10.0)
+		draw_string_outline(font, at, word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, UiStyle.SMALL, 6, Sketch.PAPER)
+		draw_string(font, at, word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, UiStyle.SMALL, Color(0.55, 0.3, 0.2))
+
 func _draw() -> void:
 	if v_on:
 		_draw_v()
@@ -245,6 +260,8 @@ func _draw() -> void:
 			"pswap": _draw_pswap(c, seed_no)
 			"jump": _word("JUMP", c, GLYPH * 0.42, seed_no)
 	_draw_grid_frame()
+	if captions:
+		_draw_captions()
 
 ## ปุ่ม V สลับตัว ติดคูลดาวน์แล้วจางลงพร้อมตัวเลขวินาที
 func _draw_pswap(c: Vector2, seed_no: int) -> void:

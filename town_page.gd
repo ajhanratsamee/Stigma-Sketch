@@ -840,7 +840,7 @@ func _prop_label(it: Dictionary) -> String:
 		"mailbox":
 			return "ตู้จดหมาย"
 		"gate":
-			return "ประตูดันเจี้ยน"
+			return "ไปผจญภัย →" if WalkPage.current_town == 0 else "ประตูดันเจี้ยน"
 		"warp":
 			var fl: Array = floors()
 			var to := int(it["to"])

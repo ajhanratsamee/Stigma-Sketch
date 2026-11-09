@@ -20,6 +20,8 @@ func _draw() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	var steps := 14
+	# ท้องฟ้าเผื่อด้านบน ตอนกล้องยกขึ้นห้องเลื่อนลงไม่เห็นขอบ
+	draw_rect(Rect2(0.0, -WalkPage.AIR_MAX - 20.0, view.x, WalkPage.AIR_MAX + 21.0), SKY_TOP)
 	for i in steps:
 		var k := float(i) / float(steps - 1)
 		draw_rect(Rect2(0.0, g * float(i) / float(steps), view.x, g / float(steps) + 1.0), SKY_TOP.lerp(SKY_LOW, k))

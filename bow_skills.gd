@@ -237,7 +237,8 @@ func _bfx(kind: String, at: Vector2, size: float, life := 0.7, parent: Node = nu
 	n.kind = kind
 	n.base = cols[0]
 	n.accent = cols[1]
-	n.size = size
+	# ชิ้นที่ติดกับ SusiFx ได้ขนาดตามแม่อยู่แล้ว ชิ้นลอยเดี่ยวย่อเอง
+	n.size = size if parent != null else size * SkillScale.K
 	n.life = life
 	n.dir = _f()
 	if parent != null:
@@ -316,6 +317,7 @@ func _wind_fx(kind: String, reach := 330.0, life := 0.45, at := Vector2.INF) -> 
 	n.kind = kind
 	n.dir = _f()
 	n.reach = reach
+	n.scale = Vector2.ONE * SkillScale.K
 	n.life = life
 	n.position = hero.position if at == Vector2.INF else at
 	page.world.add_child(n)
@@ -326,7 +328,7 @@ func _wind_fx(kind: String, reach := 330.0, life := 0.45, at := Vector2.INF) -> 
 
 ## โดนมอนด้านหน้าในวงรี ห่างตัว ahead หน่วย กว้างครึ่ง half หน่วย
 func _front(ahead: float, half: float, dmg: float, eff: String, tall := 1.5) -> Array:
-	var list := _in_ellipse(hero.position + Vector2(_f() * ahead * U, -60.0), half * U, tall * U)
+	var list := _in_ellipse(hero.position + Vector2(_f() * ahead * U * SkillScale.K, -60.0), half * U, tall * U)
 	for m in list:
 		_hit(m, dmg, eff, _f())
 	return list
@@ -883,6 +885,7 @@ func _slash_fx(kind: String, at := Vector2.INF) -> void:
 	var n := BowTrapFx.new()
 	n.kind = kind
 	n.dir = _f()
+	n.scale = Vector2.ONE * SkillScale.K
 	n.dusk = WalkPage.chosen_class == "TWILIGHT"
 	n.position = hero.position if at == Vector2.INF else at
 	page.world.add_child(n)
@@ -1127,7 +1130,7 @@ func _apply_passives(delta: float) -> void:
 	# MANA 15.4 มานาฟื้นเร็วขึ้น
 	hero.regen_mult = MANA_REGEN if has("bw_sk_mn_flow") else 1.0
 	# MANA 25.1 ยืนในบ่อมานา ฟื้นมานาเพิ่ม
-	if buffs.has("mn_pool") and absf(hero.position.x - _pool_x) <= 2.2 * U:
+	if buffs.has("mn_pool") and absf(hero.position.x - _pool_x) <= 2.2 * U * GROW:
 		hero.mp = minf(hero.mp + 25.0 * delta, hero.mp_max())
 	hero.speed_bonus = Stats.SPEED_MULT * 1.08 if has("bw_sk_gt_swift") else 1.0
 	page.atk_speed = HASTE if has("bw_sk_ws_haste") else 1.0

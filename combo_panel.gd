@@ -254,6 +254,29 @@ const PAIR_LAPIS := [
 	["^z", "ฟันลงแนวดิ่ง"],
 	["^x", "ยิงไปข้างหน้า"],
 ]
+## คอมโบสายต่อยอดของคู่ ท่าเดียวกันแต่ AZURE กับ LAPIS ออกท่าต่างกัน (AZURE / LAPIS)
+const PAIR_LINE := {
+	"SPARK DREAMER": [
+		["zzx", "หมอนเสยลอย / ยิงฟองฝันหลับ"],
+		[">>zx", "หมุนเพลงกล่อม / ฟองกล่อม 3 ลูก"],
+		["^xz", "ดิ่งกล่อมหลับ / ปาแกะฝัน"],
+	],
+	"SOMNAMBULIST": [
+		["xxz", "ละเมอต่อยรัว หมัดปิดล้ม / ยิงกระจาย 3 นัด"],
+		[">>xz", "ประตูฝันดูด แล้วพ่นมอนลอย"],
+		["^zx", "ทุบหมอนพื้น / คลื่นกรนผลัก"],
+	],
+	"SPARK FIEND": [
+		["zzx", "เสยไฟฟ้ามอนลอย / กระสุนช็อตต่อ 2 ตัว"],
+		[">>zx", "พุ่งไฟฟ้า / ยิงบอลไฟฟ้า"],
+		["^xz", "ดิ่งฟ้าผ่า / ยิงเสาฟ้าผ่า"],
+	],
+	"NEON BOLT": [
+		["xxz", "พุ่งฟันนีออน / ลำแสงราง"],
+		[">>xz", "กากบาทนีออน / พุ่งฟันนีออนกลับ"],
+		["^zx", "แท่งนีออนตก 2 แท่ง / ฝนนีออน 3 สาย"],
+	],
+}
 const MAGE_LINE := {
 	"ARCH MAGE": [
 		["xxz<z>", "เกราะ กวาดลม เมฆสายฟ้า รัว 10"],
@@ -317,6 +340,12 @@ func set_class(class_id: String, weapon := "") -> void:
 		rows.append_array(PAIR_AZURE)
 		rows.append(["LAPIS", ""])
 		rows.append_array(PAIR_LAPIS)
+		var pchain := PairCombo.chain(class_id)
+		pchain.reverse()
+		for id in pchain:
+			if PAIR_LINE.has(id):
+				rows.append([id, ""])
+				rows.append_array(PAIR_LINE[id])
 		scroll = 0.0
 		return
 	if weapon == "bow" or weapon == "spear":

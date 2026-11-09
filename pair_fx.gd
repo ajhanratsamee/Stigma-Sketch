@@ -16,6 +16,9 @@ var follow: Node2D
 var _t := 0.0
 
 static func cast(page: WalkPage, fx: String) -> void:
+	# คอมโบของสายต่อยอด (SPARK DREAMER / SOMNAMBULIST / SPARK FIEND / NEON BOLT)
+	if PairLineDream.cast(page, fx) or PairLineFiend.cast(page, fx):
+		return
 	var k := fx.trim_prefix("pc_")
 	var f := page.hero.facing
 	match k:

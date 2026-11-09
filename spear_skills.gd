@@ -221,6 +221,7 @@ func _act(move_id: String, time := 0.4, over := {}) -> void:
 ## รอยหอกส้มของ CITRUS
 func _trail(kind: String) -> void:
 	SpearFx.cast(page, "sp_" + kind)
+	_shrink_last()
 
 ## โดนมอนด้านหน้าในวงรี ห่างตัว ahead หน่วย กว้างครึ่ง half หน่วย
 func _front(ahead: float, half: float, dmg: float, eff: String, tall := 1.5) -> Array:
@@ -240,7 +241,7 @@ func _do_orb() -> void:
 		# ลูกพลังกลมเหลืองขอบดำ เห็นชัด
 		var orb := SpearOrb.new()
 		orb.vel = Vector2(_f() * 1100.0, 0.0)
-		orb.radius = 0.5 * U
+		orb.radius = 0.5 * U * SkillScale.K
 		orb.dmg = 14.0
 		orb.pierce = false
 		orb.life = 1.0
@@ -303,7 +304,7 @@ func _do_ring() -> void:
 		if is_instance_valid(_ring_fx):
 			_ring_fx.queue_free()
 		var n := SpearRing.new()
-		n.radius = RING_R * U
+		n.radius = RING_R * U * SkillScale.K
 		n.life = RING_TIME
 		page.world.add_child(n)
 		_ring_fx = n)
@@ -342,7 +343,7 @@ func _sfx(kind: String, at: Vector2, size: float, life := 0.6, follow: Node2D = 
 	n.kind = kind
 	n.base = cols[0]
 	n.accent = cols[1]
-	n.size = size
+	n.size = size * SkillScale.K
 	n.life = life
 	n.dir = _f()
 	n.position = at
@@ -369,7 +370,7 @@ func _land(wait: float, fn: Callable) -> void:
 
 ## เขตบนพื้น ทำดาเมจทุก tick  o: pull ดูด root ตรึง slow ช้า weak อ่อนแรง
 func _zone(at: Vector2, half: float, life: float, dmg: float, eff: String, tick: float, node: Node2D, o := {}) -> Dictionary:
-	var d := {"type": "zone", "pos": at, "half": half, "life": life, "dmg": dmg, "eff": eff, "tick": tick, "node": node}
+	var d := {"type": "zone", "pos": at, "half": half * SkillScale.K, "life": life, "dmg": dmg, "eff": eff, "tick": tick, "node": node}
 	d.merge(o, true)
 	return _add(d)
 
@@ -380,12 +381,22 @@ func _mover(node: Node2D, at: Vector2, vel: Vector2, r: float, life: float, dmg:
 	d.merge(o, true)
 	return _add(d)
 
+## เอฟเฟกต์ท่าหอก (ใช้ร่วมกับคอมโบ) ตอนใช้ในสกิล ย่อตามขนาดสกิล
+func _tcast(fx: String) -> void:
+	SpearTigerFx.cast(page, fx)
+	_shrink_last()
+
+func _shrink_last() -> void:
+	var n := page.world.get_child(page.world.get_child_count() - 1) as Node2D
+	if n != null:
+		n.scale *= SkillScale.K
+
 ## บอลหน้าแมวหมาป่า
 func _wolf(dir: Vector2, speed: float, r: float, dmg: float, pierce: bool, life := 1.2, extra := {}) -> WolfBall:
 	var b := WolfBall.new()
 	b.position = hero.position + Vector2(_f() * 90.0, -85.0)
 	b.vel = dir.normalized() * speed
-	b.radius = r
+	b.radius = r * SkillScale.K
 	b.dmg = dmg
 	b.pierce = pierce
 	b.life = life
@@ -398,7 +409,7 @@ func _talis(at: Vector2, vel: Vector2, dmg: float, pierce: bool, life := 1.0) ->
 	var t := Talisman.new()
 	t.position = at
 	t.vel = vel
-	t.radius = 0.4 * U
+	t.radius = 0.4 * U * SkillScale.K
 	t.dmg = dmg
 	t.pierce = pierce
 	t.life = life
@@ -408,7 +419,7 @@ func _talis(at: Vector2, vel: Vector2, dmg: float, pierce: bool, life := 1.0) ->
 ## ลูกหมาป่าเงา ลอยตามตัว ไล่กัดมอนใกล้ๆ
 func _pup(life: float, off: float, dmg := 12.0) -> void:
 	var b := WolfBall.new()
-	b.radius = 0.42 * U
+	b.radius = 0.42 * U * SkillScale.K
 	b.dmg = dmg
 	b.pierce = true
 	b.life = life + 2.0
@@ -564,7 +575,7 @@ func _do_tg_pounce() -> void:
 	_trail("up")
 	_add({"type": "slide", "life": 0.35, "speed": 11.0, "node": null})
 	_land(0.15, func() -> void:
-		SpearTigerFx.cast(page, "spt_impact")
+		_tcast("spt_impact")
 		_sfx("ring", hero.position + Vector2(_f() * 0.6 * U, -10.0), 1.6 * U, 0.5)
 		_boom(hero.position + Vector2(_f() * 0.6 * U, -40.0), 2.4 * U, 1.3 * U, 45.0, "launch", "fire"))
 
@@ -572,7 +583,7 @@ func _do_tg_pounce() -> void:
 func _do_tg_claw() -> void:
 	hero.plain_sa_t = maxf(hero.plain_sa_t, 0.7)
 	_act("sp_dz", 0.6)
-	SpearTigerFx.cast(page, "spt_rush")
+	_tcast("spt_rush")
 	_add({"type": "slide", "life": 0.62, "speed": 6.0, "dmg": 10.0, "eff": "light", "last": "strong", "beats": [0.05, 0.15, 0.25, 0.35, 0.45, 0.55], "node": null})
 	for i in 3:
 		_later(0.06 + float(i) * 0.18, func() -> void:
@@ -592,7 +603,7 @@ func _do_tg_roar() -> void:
 func _do_tg_stripes() -> void:
 	var x0 := hero.position.x
 	_act("sp_dx", 0.4)
-	SpearTigerFx.cast(page, "spt_roll")
+	_tcast("spt_roll")
 	_add({"type": "slide", "life": 0.35, "speed": 12.0, "dmg": 14.0, "eff": "flinch", "node": null, "once_each": true})
 	_later(0.36, func() -> void:
 		var dist := absf(hero.position.x - x0) + 1.0 * U
@@ -606,7 +617,7 @@ func _do_tg_charge() -> void:
 		hero.plain_sa_t = maxf(hero.plain_sa_t, 0.5)
 		_act("sp_z1", 0.3, {"lunge": 0.5})
 		_trail("thrust")
-		SpearTigerFx.cast(page, "spt_rush")
+		_tcast("spt_rush")
 		_add({"type": "slide", "life": 0.25 + 0.2 * k, "speed": 14.0 + 8.0 * k, "dmg": 35.0 + 65.0 * k, "eff": "knock" if k > 0.6 else "strong", "node": null, "once_each": true}))
 
 ## 30.2 ใช้กลางอากาศได้ บนพื้นข่วนเสย กลางอากาศข่วนฟาดลง
@@ -627,11 +638,11 @@ func _do_tg_sky() -> void:
 func _do_tg_tumble() -> void:
 	hero.invuln_t = maxf(hero.invuln_t, 0.6)
 	_act("sp_adx", 0.45)
-	SpearTigerFx.cast(page, "spt_roll")
+	_tcast("spt_roll")
 	_add({"type": "slide", "life": 0.4, "speed": 13.0, "dmg": 26.0, "eff": "flinch", "node": null, "once_each": true})
 	_later(0.45, func() -> void:
 		_act("sp_x2", 0.35)
-		SpearTigerFx.cast(page, "spt_spin_down")
+		_tcast("spt_spin_down")
 		_later(0.12, func() -> void: _boom(hero.position + Vector2(_f() * 1.1 * U, -50.0), 2.0 * U, 1.3 * U, 40.0, "knock", "fire")))
 
 # ---------------------------------------------------------------- FIERCE PROWLER
@@ -649,7 +660,7 @@ func _do_fp_chain() -> void:
 			_hop(0.35)
 			_warp(tgt.pos.x - hero.facing * 0.9)
 			_act("sp_adz1", 0.28)
-			SpearTigerFx.cast(page, "spt_impact")
+			_tcast("spt_impact")
 			_sfx("claw", _mc(tgt), 170.0, 0.3)
 			_hit(tgt, 38.0, "launch" if i == 2 else "strong", _f()))
 
@@ -658,7 +669,7 @@ func _do_fp_lunge() -> void:
 	hero.plain_sa_t = maxf(hero.plain_sa_t, 0.6)
 	_act("sp_z1", 0.4, {"lunge": 0.6})
 	_trail("thrust")
-	SpearTigerFx.cast(page, "spt_rush")
+	_tcast("spt_rush")
 	var dist := page._screen_w() * 0.5 / U
 	_sfx("stripes", Vector2(hero.position.x, 0.0), dist * U, 0.9)
 	_add({"type": "slide", "life": 0.35, "speed": dist / 0.35, "dmg": 60.0, "eff": "knock", "node": null, "once_each": true})
@@ -706,7 +717,7 @@ func _do_fp_king() -> void:
 			_trail("up"))
 		_land(0.35, func() -> void:
 			_act("sp_az", 0.4)
-			SpearTigerFx.cast(page, "spt_impact")
+			_tcast("spt_impact")
 			_sfx("stripes", Vector2(hero.position.x - _f() * 2.0 * U, 0.0), 4.0 * U, 0.9)
 			_boom(hero.position + Vector2(_f() * 1.0 * U, -50.0), 3.6 * U, 1.8 * U, 90.0, "knock", "fire")))
 

@@ -27,7 +27,7 @@ const NEXT := {
 static var _moves := {}
 
 static func lines() -> Array:
-	return []
+	return [PairLineDream, PairLineFiend]
 
 static func chain(class_id: String) -> Array:
 	var out := []

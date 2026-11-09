@@ -6,7 +6,7 @@ extends Node
 ## ภาพทุกชิ้นใช้ SusiFx  โดนมอนผ่าน page._strike จึงได้ดาเมจตามเลเวลและรอยเท้าแมวเหมือนสกิลอื่น
 
 const U := CombatData.UNIT
-const GROW := 1.2               # สกิลใหญ่ขึ้นเล็กน้อย ทั้งภาพและระยะโดน (ไม่ใหญ่กว่าตัว)
+const GROW := 1.2 * SkillScale.K   # ขนาดสกิล ทั้งภาพและระยะโดน (คูณ SkillScale.K ให้เล็กลงตามกล้องที่ซูมใกล้)
 const EFF := {
 	"light": {"type": "flinch", "stun": 0.3, "kb": 0.6},
 	"flinch": {"type": "flinch", "stun": 0.6, "kb": 2.0},
@@ -989,7 +989,7 @@ func _apply_passives(delta: float) -> void:
 	hero.susi_mana_t = float(buffs.get("mana_up", 0.0))
 	# ยืนในใยแมงมุม มานาฟื้น
 	for o in _objs:
-		if o.get("web_zone", false) and absf(hero.position.x - (o["pos"] as Vector2).x) < float(o["r"]) and hero.pos.y < 1.0:
+		if o.get("web_zone", false) and absf(hero.position.x - (o["pos"] as Vector2).x) < float(o["r"]) * SkillScale.K and hero.pos.y < 1.0:
 			hero.mp = minf(hero.mp + 20.0 * delta, hero.mp_max())
 
 func _tick_channel(delta: float) -> void:
@@ -1075,7 +1075,7 @@ func _tick_obj(o: Dictionary, delta: float) -> void:
 			return
 		"pull":
 			for m in _mons():
-				if _mc(m).distance_to(o["pos"]) <= float(o["r"]) and not ROLES_HEAVY(m):
+				if _mc(m).distance_to(o["pos"]) <= float(o["r"]) * SkillScale.K and not ROLES_HEAVY(m):
 					m.pos.x = move_toward(m.pos.x, (o["pos"] as Vector2).x / U, float(o["speed"]) * delta)
 			if float(o["life"]) <= 0.0:
 				_objs.erase(o)
@@ -1175,7 +1175,7 @@ func _tick_obj(o: Dictionary, delta: float) -> void:
 			var hit_r := float(o.get("hit_r", o["r"]))
 			if o.has("pull"):
 				for m in _mons():
-					if _mc(m).distance_to(o["pos"]) <= float(o["pull"]) and not ROLES_HEAVY(m):
+					if _mc(m).distance_to(o["pos"]) <= float(o["pull"]) * SkillScale.K and not ROLES_HEAVY(m):
 						m.pos.x = move_toward(m.pos.x, (o["pos"] as Vector2).x / U, 4.0 * delta)
 			if o.get("once", false):
 				if not o.get("fired", false):
@@ -1199,7 +1199,7 @@ func _tick_obj(o: Dictionary, delta: float) -> void:
 					return list)
 			if o.get("acid_pool", false):
 				_ticks(o, delta, func() -> Array: return _in_ellipse((o["pos"] as Vector2) + Vector2(0.0, -40.0), float(o["r"]), 1.2 * U))
-			if o.get("speed_zone", false) and absf(hero.position.x - (o["pos"] as Vector2).x) < float(o["r"]) and hero.pos.y < 1.0:
+			if o.get("speed_zone", false) and absf(hero.position.x - (o["pos"] as Vector2).x) < float(o["r"]) * SkillScale.K and hero.pos.y < 1.0:
 				buffs["ore_speed"] = 3.0
 			if o.get("acid", false):
 				_ticks(o, delta, func() -> Array:

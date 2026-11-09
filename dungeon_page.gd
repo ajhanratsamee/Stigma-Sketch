@@ -450,13 +450,18 @@ func _draw_platforms(theme: String) -> void:
 
 func _follow(delta: float) -> void:
 	var edge := maxf(half * CombatData.UNIT * ZOOM - _view.x * 0.5, 0.0)
-	var want := clampf(hero.position.x * ZOOM, -edge, edge)
+	_tick_look(delta)
+	var want := clampf(hero.position.x * ZOOM + look, -edge, edge)
 	cam = want if delta <= 0.0 else lerpf(cam, want, 1.0 - exp(-8.0 * delta))
+	_tick_air(delta)
 	if hyper == null and shake_left <= 0.0:
 		world.position.x = _home_x()
+		world.position.y = _home_y()
 	for l in _layers:
 		var f: float = l[1]
 		(l[0] as Node2D).position.x = 0.0 if f <= 0.0 else _view.x * 0.5 - cam * f
+		# ฉากหลังเลื่อนลงตามกล้องที่ยกขึ้น ไกลเลื่อนน้อย ใกล้เลื่อนเต็ม
+		(l[0] as Node2D).position.y = 0.0 if f <= 0.0 else air_y
 
 ## ปุ่มตั้งค่า > ย้อนกลับ ออกจากดันกลับเมือง
 func go_back() -> void:

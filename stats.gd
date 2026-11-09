@@ -64,8 +64,12 @@ static func skill_mp(weapon: String, id: String) -> float:
 	# สกิลธนูเก็บมานาต่อสกิล (เลขเลเวลซ้ำกันข้ามสาย)
 	if SpearSkills.SPEAR_MP.has(id):
 		return float(SpearSkills.SPEAR_MP[id])
+	if FistSkills.FIST_MP.has(id):
+		return float(FistSkills.FIST_MP[id])
 	if BowSkills.BOW_MP.has(id):
 		return float(BowSkills.BOW_MP[id])
+	if PairSkills.PAIR_MP.has(id):
+		return float(PairSkills.PAIR_MP[id])
 	var tag := str(info.get("level", str(info.get("name", "")).get_slice(" ", 0)))
 	var t := QuestData.tier(weapon, str(info.get("class", "BASIC")))
 	var key := "cat" if weapon == "spear" or weapon == "azure" or weapon == "fist" else weapon

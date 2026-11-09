@@ -145,6 +145,7 @@ static func _make(page: WalkPage, kind_name: String, look: Dictionary, kk: float
 	n.bits = look["bits"]
 	n.k = kk
 	n.life = life_s
+	n.scale = Vector2.ONE * SkillScale.K
 	page.world.add_child(n)
 	return n
 

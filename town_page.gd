@@ -78,6 +78,10 @@ func is_town() -> bool:
 func _home_x() -> float:
 	return _view.x * 0.5 - cam
 
+## พื้นตามเนิน + กล้องยกตามของที่ลอย
+func _home_y() -> float:
+	return _view.y * GROUND_AT + cam_y + air_y
+
 func _ready() -> void:
 	super._ready()
 	_town = TownData.town(current_town) if current_town < TownData.TOWNS.size() else {}
@@ -157,20 +161,24 @@ func _process(delta: float) -> void:
 ## กล้องตามตัวละคร ไม่เลยหัวท้ายเมือง  เมืองดาวพื้นโค้งกล้องอยู่กลางตัวละครตลอด ดาวหมุนแทน
 func _follow(delta: float) -> void:
 	var edge := maxf(town_half * CombatData.UNIT * ZOOM - _view.x * 0.5, 0.0)
-	var want := clampf(hero.position.x * ZOOM, -edge, edge) if _planet == null else hero.position.x * ZOOM
+	if _planet == null:
+		_tick_look(delta)
+	var want := clampf(hero.position.x * ZOOM + look, -edge, edge) if _planet == null else hero.position.x * ZOOM
 	cam = want if delta <= 0.0 else lerpf(cam, want, 1.0 - exp(-8.0 * delta))
 	var want_y := ground_h(hero.pos.x) * CombatData.UNIT * ZOOM if not _tdata.is_empty() else 0.0
 	cam_y = want_y if delta <= 0.0 else lerpf(cam_y, want_y, 1.0 - exp(-6.0 * delta))
+	if _planet == null:
+		_tick_air(delta, -ground_h(hero.pos.x) * CombatData.UNIT if not _tdata.is_empty() else 0.0)
 	if hyper == null and shake_left <= 0.0:
 		world.position.x = _home_x()
 		if not _warping:
-			world.position.y = _view.y * GROUND_AT + cam_y
+			world.position.y = _home_y()
 	for l in _layers:
 		var f: float = l[1]
 		if not is_instance_valid(l[0]):
 			continue
 		(l[0] as Node2D).position.x = 0.0 if f <= 0.0 else _view.x * 0.5 - cam * f
-		(l[0] as Node2D).position.y = 0.0 if f <= 0.0 else cam_y * minf(f, 1.0) * 0.5
+		(l[0] as Node2D).position.y = 0.0 if f <= 0.0 else cam_y * minf(f, 1.0) * 0.5 + air_y
 	# เมฆลอยเองช้าๆ (เลื่อนตำแหน่ง ไม่วาดใหม่) พุ่มไม้หน้าสุดติดขอบล่างจอเสมอ
 	if is_instance_valid(_cloud_node):
 		_cloud_node.position.x += fposmod(float(Time.get_ticks_msec()) * 0.001 * CLOUD_DRIFT, CLOUD_TILE)

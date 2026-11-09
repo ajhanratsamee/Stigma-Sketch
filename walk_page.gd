@@ -4,7 +4,18 @@ extends Node2D
 ## เอาปุ่มสกิลและช่องสกิลออกชั่วคราว รอสกิลชุดใหม่ โค้ดสกิลเดิมยังอยู่
 
 const GROUND_AT := 0.6            # พื้นอยู่ต่ำเกือบถึงปุ่ม JUMP
-const ZOOM := 0.55              # ถอยกล้องให้เห็นกว้างขึ้น
+const ZOOM := 0.65              # ซูมเข้า 18% จากเดิม 0.55 พื้นยังอยู่ระดับเดิม ภาพขยายขึ้นด้านบน (ตัดแค่ท้องฟ้า)
+# กล้องตามขึ้นเมื่อตัวละคร / มอนที่โดนตีลอย ลอยสูงจนจะหลุดขอบบน แล้วค่อยลงเมื่อลงพื้น
+const AIR_TOP := 150.0          # จุดบนสุดของหัวต้องอยู่ต่ำกว่านี้บนจอ (ใต้การ์ดเลือด)
+const AIR_HEAD := 230.0         # ความสูงหัวเหนือเท้า (จุดภาพในโลก)
+const AIR_MAX := 340.0          # กล้องยกขึ้นได้มากสุด (จุดภาพบนจอ)
+const AIR_RANGE := 900.0        # มอนลอยที่ห่างตัวละครไม่เกินนี้ (จุดภาพในโลก) ถึงนับ
+const AIR_RISE := 6.0           # ความไวตอนกล้องยกขึ้น
+const AIR_FALL := 2.6           # ความไวตอนกล้องลง (ช้ากว่า ไม่วูบ)
+const AIR_FEET := 520.0         # เท้าตัวละครต้องอยู่สูงกว่านี้บนจอเสมอ (ไม่จมลงไปหลังจอย/ปุ่ม) ตัวละครสำคัญกว่ามอนลอย
+# กล้องมองล้ำไปข้างหน้าตามทิศที่หัน (เมือง ดันเจี้ยน) เห็นมอนที่เข้ามาเร็วขึ้น
+const LOOK_AHEAD := 0.1         # สัดส่วนความกว้างจอ
+const LOOK_RATE := 1.8          # ความไวตอนกล้องเลื่อนตามทิศ (ช้าๆ หันกลับเร็วไม่กระตุก)
 const SIDE_MARGIN := 0.6
 const HIDDEN_BUTTONS := []
 const LOCKED_BUTTONS := []
@@ -225,6 +236,41 @@ func is_dungeon() -> bool:
 func _home_x() -> float:
 	return _view.x * 0.5
 
+var air_y := 0.0                # กล้องยกขึ้นอยู่กี่จุดภาพ (โลกเลื่อนลง)
+var look := 0.0                 # กล้องล้ำไปข้างหน้ากี่จุดภาพ
+
+## ตำแหน่งแนวตั้งของโลกบนจอ (พื้นระดับเดิม + กล้องยกตามของที่ลอย)
+func _home_y() -> float:
+	return _view.y * GROUND_AT + air_y
+
+## กล้องยกขึ้นเท่าไรถึงเห็นหัวตัวละครกับมอนที่ลอยอยู่ใกล้ๆ  ground_y คือพื้นใต้ตัวละคร (จุดภาพในโลก)
+func _air_target(ground_y := 0.0) -> float:
+	if hero == null:
+		return 0.0
+	var top := hero.position.y
+	for e in get_tree().get_nodes_in_group("monsters"):
+		var m := e as Monster
+		if m == null or m.state != "air" or absf(m.position.x - hero.position.x) > AIR_RANGE:
+			continue
+		top = minf(top, m.position.y)
+	var need := AIR_TOP - _view.y * GROUND_AT - (top - ground_y - AIR_HEAD) * ZOOM
+	# ห้ามยกจนเท้าตัวละครตกต่ำกว่า AIR_FEET
+	var cap := AIR_FEET - _view.y * GROUND_AT - (hero.position.y - ground_y) * ZOOM
+	return clampf(minf(need, cap), 0.0, AIR_MAX)
+
+func _tick_air(delta: float, ground_y := 0.0) -> void:
+	if hyper != null:
+		return
+	var want := _air_target(ground_y)
+	air_y = want if delta <= 0.0 else lerpf(air_y, want, 1.0 - exp(-(AIR_RISE if want > air_y else AIR_FALL) * delta))
+
+## กล้องล้ำไปข้างหน้าตามทิศที่หัน
+func _tick_look(delta: float) -> void:
+	if hero == null:
+		return
+	var want := signf(hero.facing) * _view.x * LOOK_AHEAD
+	look = want if delta <= 0.0 else lerpf(look, want, 1.0 - exp(-LOOK_RATE * delta))
+
 func _ready() -> void:
 	# เปลี่ยนฉากระหว่างหยุดจังหวะตอนโดนตี เวลาอาจค้างช้าอยู่ คืนเป็นปกติทุกครั้งที่เข้าหน้า
 	Engine.time_scale = 1.0
@@ -320,6 +366,16 @@ func _ready() -> void:
 		susi = BowSkills.new()
 		world.add_child(susi)
 		susi.setup(self)
+	elif chosen_weapon == "azure":
+		# สกิลของ CAT AZURE & LAPIS ใช้ระบบเดียวกับ SUSI
+		susi = PairSkills.new()
+		world.add_child(susi)
+		susi.setup(self)
+	elif chosen_weapon == "fist":
+		# สกิลของ CAT ASH ใช้ระบบเดียวกับ CITRUS
+		susi = FistSkills.new()
+		world.add_child(susi)
+		susi.setup(self)
 	panel = SkillPanel.new()
 	panel.weapon = chosen_weapon
 	panel.root_class = chosen_class
@@ -389,8 +445,13 @@ func _hit_area(center: float, half: float, dmg: float, side: float, once = null,
 
 ## เอฟเฟกต์สกิลที่วาดตามตำแหน่งตัวเอง ขยายให้ใหญ่ขึ้นตอนเข้าฉาก
 func _on_world_child(node: Node) -> void:
-	if node is CatShockwave or node is CatShout or node is CatSwordWave or node is CatEruption or node is CatRedCrack or node is CatCrack or node is CatSlashMarks or node is CatStorm or node is CatWhirl or node is CatPhoenix or node is CatSkyBlade:
+	var listed := node is CatShockwave or node is CatShout or node is CatSwordWave or node is CatEruption or node is CatRedCrack or node is CatCrack or node is CatSlashMarks or node is CatStorm or node is CatWhirl or node is CatPhoenix or node is CatSkyBlade
+	if listed:
 		(node as Node2D).scale *= FX_SCALE
+	# ระหว่างใช้สกิลแมว เอฟเฟกต์ที่ตีได้ย่อตาม SkillScale และระยะโดนเท่ากับภาพ (คอมโบธรรมดาไม่ย่อ)
+	if node is Node2D and combo_name.begins_with("cat_") and not combo_name.ends_with("_hyper") and (listed or "hitter" in node):
+		(node as Node2D).scale *= SkillScale.K
+		SkillScale.wrap_hitter(node as Node2D)
 
 ## สีลูกเล่นของแต่ละสาย
 func _fx_tint() -> Color:
@@ -556,6 +617,9 @@ func pair_swap(manual := true, at: Variant = null, face := 0.0) -> bool:
 		fx.position = p
 		fx.life = 0.4
 		world.add_child(fx)
+	# สกิลติดตัวของคู่ที่ทำงานตอนสลับตัว
+	if susi != null and susi.has_method("on_swap"):
+		susi.on_swap(manual)
 	return true
 
 func _on_button(id: String) -> void:
@@ -988,7 +1052,7 @@ func _use_skill(id: String) -> void:
 		_blood_price()
 		return
 	# สกิลของ CAT SUSI ใช้ระบบของตัวเอง (มานา คูลดาวน์ กดค้าง)
-	if id.begins_with("su_") or id.begins_with("bw_sk_") or id.begins_with("sp_sk_"):
+	if id.begins_with("su_") or id.begins_with("bw_sk_") or id.begins_with("sp_sk_") or id.begins_with("fs_sk_") or id.begins_with("pr_sk_"):
 		if susi == null:
 			return
 		if susi != null and not SkillPanel.find_skill(id).get("passive", false):
@@ -1072,7 +1136,7 @@ func _use_skill(id: String) -> void:
 			if hs != null:
 				_start_hyper(hs)
 			return
-		var fist_hypers := {"cat_gs_hyper": "res://cat_sumo_hyper.gd"}
+		var fist_hypers := {"cat_gs_hyper": "res://cat_sumo_hyper.gd", "cat_kf_hyper": "res://cat_kungfu_hyper.gd", "cat_mt_hyper": "res://cat_muaythai_hyper.gd", "cat_sb_hyper": "res://cat_sambo_hyper.gd"}
 		if fist_hypers.has(id):
 			var hf := _new_hyper(str(fist_hypers[id]))
 			if hf != null:
@@ -1109,12 +1173,18 @@ func _end_hyper() -> void:
 
 func _process(delta: float) -> void:
 	# ตีไม่โดนมอน จอไม่สั่น
+	if not is_town() and not is_dungeon():
+		_tick_air(delta)
+		if hyper == null and shake_left <= 0.0:
+			world.position.y = _home_y()
+		if room != null:
+			room.position.y = air_y
 	if shake_left > 0.0 and Time.get_ticks_msec() - _hit_clock > SHAKE_HIT_WINDOW:
 		shake_left = 0.0
-		world.position = Vector2(_home_x(), _view.y * GROUND_AT)
+		world.position = Vector2(_home_x(), _home_y())
 	if hyper == null and shake_left > 0.0:
 		shake_left = maxf(shake_left - delta, 0.0)
-		var home := Vector2(_home_x(), _view.y * GROUND_AT)
+		var home := Vector2(_home_x(), _home_y())
 		var power := SHAKE_POWER * shake_left / SHAKE_TIME
 		world.position = home + Vector2(sin(shake_left * SHAKE_SPEED), cos(shake_left * SHAKE_SPEED * 1.3)) * power
 	if hyper != null:
@@ -1744,6 +1814,9 @@ func _fire(at: Vector2, vel: Vector2, radius: float, dmg: float, extra: Dictiona
 		ball = CatArrow.new()
 	if chosen_class == "FLAME KNIGHT" and not blood:
 		radius *= FK_BALL_SIZE
+	# ลูกที่ปล่อยจากสกิลแมว ย่อตาม SkillScale (ลูกคอมโบไม่ย่อ)
+	if combo_name.begins_with("cat_"):
+		radius *= SkillScale.K
 	ball.radius = radius
 	ball.position = at
 	ball.tail = -vel.normalized()

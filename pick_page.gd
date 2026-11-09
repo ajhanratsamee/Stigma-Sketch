@@ -93,6 +93,7 @@ const BUTTON_LINE := 4.0
 const BUTTON_TEXT := "สร้างตัวละคร"
 const TRY_TEXT := "ทดลองเล่น"
 const BUTTON_GAP := 40.0
+const SHOW_TRY := false          # ปุ่มทดลองเล่น ปิดไว้ (เปิดกลับได้)
 const BUTTON_TEXT_SIZE := 38
 
 var heroes := {}
@@ -208,9 +209,13 @@ func unpick() -> void:
 		tween.tween_callback(queue_redraw)
 
 func button_rect() -> Rect2:
+	if not SHOW_TRY:
+		return Rect2(Vector2(_view.x * 0.5 - BUTTON_SIZE.x * 0.5, _view.y * BUTTON_Y - BUTTON_SIZE.y * 0.5), BUTTON_SIZE)
 	return Rect2(Vector2(_view.x * 0.5 + BUTTON_GAP * 0.5, _view.y * BUTTON_Y - BUTTON_SIZE.y * 0.5), BUTTON_SIZE)
 
 func try_rect() -> Rect2:
+	if not SHOW_TRY:
+		return Rect2()
 	return Rect2(Vector2(_view.x * 0.5 - BUTTON_GAP * 0.5 - BUTTON_SIZE.x, _view.y * BUTTON_Y - BUTTON_SIZE.y * 0.5), BUTTON_SIZE)
 
 func _input(event: InputEvent) -> void:
@@ -346,7 +351,8 @@ func _draw() -> void:
 	var box := button_rect()
 	var on := selected != ""
 	UiStyle.button(self, box, BUTTON_TEXT, 510, on, true)
-	UiStyle.button(self, try_rect(), TRY_TEXT, 511, on)
+	if SHOW_TRY:
+		UiStyle.button(self, try_rect(), TRY_TEXT, 511, on)
 	var font := Sketch.font()
 	if _full_t > 0.0:
 		var msg := "คลังเต็มแล้ว ลบตัวเก่าในหน้าคลังก่อน"

@@ -1149,7 +1149,14 @@ func _down_held() -> bool:
 	return pad.is_held("down") or joy.vector().y > 0.55 or Input.is_key_pressed(KEY_DOWN)
 
 ## กดทิศที่หันอยู่ค้างไว้
+var _dir_hold_t := 0.0
+var _dir_hold_sign := 0.0
+const FRESH_DIR := 0.35         # กดทิศมาไม่เกินเท่านี้ถึงนับเป็น ">" (กดค้างเดินมานานไม่นับ)
+const COMBO_DRIFT := 1.4        # ตีไปเดินไปช้าๆ หน่วยต่อวินาที
+
 func _forward_held() -> bool:
+	if _dir_hold_t > FRESH_DIR:
+		return false
 	if joy.direction() != 0.0 and joy.direction() == signf(hero.facing):
 		return true
 	if hero.facing > 0.0:
@@ -2346,6 +2353,12 @@ func _physics_process(delta: float) -> void:
 			dir -= 1.0
 		if Input.is_key_pressed(KEY_RIGHT):
 			dir += 1.0
+	# นับว่ากดทิศเดิมค้างมานานแค่ไหน (คนเดินค้างแล้วตี ไม่ให้นับเป็นคำสั่ง ">")
+	if dir != 0.0 and dir == _dir_hold_sign:
+		_dir_hold_t += delta
+	else:
+		_dir_hold_t = 0.0
+		_dir_hold_sign = dir
 	_tick_bow_stance(dir)
 	var planted: bool = hero.plain_swing > 0.0 and hero.plain_swing_kind != "swing"
 	# ท่าโดนไปแล้วและถึงช่วงต่อคอมโบ กดเดินหรือกระโดดตัดท่าได้ทันที ไม่ต้องรอท่าจบ
@@ -2390,6 +2403,9 @@ func _physics_process(delta: float) -> void:
 			_jump_wind = JUMP_WIND
 			_jump_buf_t = 0.0
 	hero.input_dir = 0.0 if planted else dir
+	# ตีไปเดินไปช้าๆ: ระหว่างคอมโบบนพื้น กดทิศไปทางที่หันค้าง ตัวไหลตามมอนไปข้างหน้า
+	if planted and combo_nth >= 0 and hero.on_floor() and dir != 0.0 and dir == signf(hero.facing) and not hero.plain_move.has("dive") and not hero.plain_move.get("stance", false) and not hero.plain_move.get("guard", false):
+		hero.pos.x = clampf(hero.pos.x + dir * COMBO_DRIFT * delta, -hero.half_width, hero.half_width)
 	hero.run_push = joy.running() and not planted
 	hero.fast_fall = _down_held() and not hero.on_floor() and combo_nth < 0
 	# CAT ASH สาย HEAVYWEIGHT กลางอากาศกดลง กระแทกพื้นรอบตัว

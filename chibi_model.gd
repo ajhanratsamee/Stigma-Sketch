@@ -390,6 +390,13 @@ var _cat_eye_home: Array = []
 var _cat_eye_up: Array = []
 var _blink_t := 2.0
 var _blink := 0.0
+# สีหน้าแมว: ชุดตาแต่ละอารมณ์สร้างครั้งเดียว สลับเปิดปิดตามสถานะ ไม่สร้างผิวใหม่ทุกเฟรม
+var _face_sets: Array = []       # ต่อตาแต่ละข้าง {อารมณ์: Node3D}
+var _face_mood := "idle"
+var _mouth_cat: Node3D           # ปาก ω ปกติ
+var _mouth_open: Node3D          # ปากอ้ากลม ตอนออกท่าพิเศษ โดนตี
+var _mouth_smile: Node3D         # ปากยิ้มกว้าง ตอนดีใจ
+var face_test := ""              # บังคับสีหน้า ใช้ทดสอบ ว่างคือดูจากสถานะตัวละคร
 var _twitch_t := 3.0
 var _twitch := 0.0
 var _rng := RandomNumberGenerator.new()
@@ -1303,6 +1310,9 @@ func _build_cat() -> void:
 		for n in 7:
 			var a := PI * float(n) / 6.0
 			_part(mouth, _ball(0.011), eye, Vector3(side * 0.034 + cos(a) * 0.034, -sin(a) * 0.028, 0.0))
+	_mouth_cat = mouth
+	if style != "cat_npc":
+		_build_faces(eye, face)
 	for i in 2:
 		var foot := _group(_turn_node)
 		_part(foot, foot_mesh, fur, Vector3(0.0, -0.08, 0.04), Vector3(1.0, 0.6, 1.3))
@@ -1971,6 +1981,135 @@ func _ear_lift(v: Vector3, top: float, twitch := false) -> float:
 		lift = maxf(lift, _ear_h * (0.8 if bent else 1.0) * w * w * (3.0 - 2.0 * w) * upper)
 	return lift
 
+## เส้นมนลากผ่านจุด ปลายและข้อต่อเป็นก้อนกลม
+func _stroke(parent: Node3D, pts: Array, r: float, material: Material) -> void:
+	for i in pts.size():
+		_part(parent, _ball(r), material, pts[i])
+		if i + 1 < pts.size():
+			_edge(parent, pts[i], pts[i + 1], r, material)
+
+## ชุดตาแต่ละอารมณ์ ตาข้างละชุด จุดศูนย์กลางอยู่ที่ตำแหน่งตาเดิม ซ่อนไว้ก่อน
+## big ตากลมโตมีจุดวาว  fierce ตาเรียวมีคิ้วชี้ลง  squint > <  dizzy ก้นหอย  ko X  happy ^  shut ปิดตาโค้ง
+func _build_faces(eye: Material, face: Vector3) -> void:
+	var shine := _mat(Color.WHITE, 0.2, 0.6)
+	shine.emission_enabled = true
+	shine.emission = Color(1.0, 1.0, 1.0)
+	shine.emission_energy_multiplier = 0.5
+	var t := 0.022
+	for i in _cat_eyes.size():
+		var side := -1.0 if i == 0 else 1.0
+		var inward := -side            # ทิศเข้าหาจมูก
+		var sets := {}
+		var big := Node3D.new()
+		_torso.add_child(big)
+		_part(big, _ball(0.07), eye, Vector3.ZERO, Vector3(1.05, 1.42, 0.5))
+		_part(big, _ball(0.024), shine, Vector3(-0.022, 0.04, 0.034))
+		_part(big, _ball(0.012), shine, Vector3(0.022, -0.035, 0.034))
+		sets["big"] = big
+		var fierce := Node3D.new()
+		_torso.add_child(fierce)
+		_part(fierce, _ball(0.07), eye, Vector3(0.0, -0.012, 0.0), Vector3(0.85, 1.0, 0.45))
+		_part(fierce, _ball(0.013), shine, Vector3(-0.015, 0.012, 0.03))
+		_stroke(fierce, [Vector3(-inward * 0.07, 0.135, 0.01), Vector3(inward * 0.055, 0.09, 0.02)], t * 0.95, eye)
+		sets["fierce"] = fierce
+		var squint := Node3D.new()
+		_torso.add_child(squint)
+		_stroke(squint, [Vector3(-inward * 0.06, 0.07, 0.0), Vector3(inward * 0.05, 0.0, 0.014), Vector3(-inward * 0.06, -0.07, 0.0)], t, eye)
+		sets["squint"] = squint
+		var dizzy := Node3D.new()
+		_torso.add_child(dizzy)
+		var spiral := []
+		for n in 15:
+			var a := float(n) / 14.0 * TAU * 1.6
+			var rr := 0.012 + 0.066 * float(n) / 14.0
+			spiral.append(Vector3(cos(a * side) * rr, sin(a * side) * rr, 0.004 * float(n) / 14.0))
+		_stroke(dizzy, spiral, t * 0.75, eye)
+		sets["dizzy"] = dizzy
+		var ko := Node3D.new()
+		_torso.add_child(ko)
+		_stroke(ko, [Vector3(-0.06, 0.06, 0.0), Vector3(0.06, -0.06, 0.0)], t, eye)
+		_stroke(ko, [Vector3(0.06, 0.06, 0.0), Vector3(-0.06, -0.06, 0.0)], t, eye)
+		sets["ko"] = ko
+		var happy := Node3D.new()
+		_torso.add_child(happy)
+		var arch := []
+		for n in 7:
+			var a := PI * (0.12 + 0.76 * float(n) / 6.0)
+			arch.append(Vector3(cos(a) * 0.066, sin(a) * 0.066 - 0.024, 0.0))
+		_stroke(happy, arch, t, eye)
+		sets["happy"] = happy
+		var shut := Node3D.new()
+		_torso.add_child(shut)
+		var bowl := []
+		for n in 7:
+			var a := PI * (0.12 + 0.76 * float(n) / 6.0)
+			bowl.append(Vector3(cos(a) * 0.056, -sin(a) * 0.03 + 0.01, 0.0))
+		_stroke(shut, bowl, t * 0.85, eye)
+		sets["shut"] = shut
+		for k in sets:
+			(sets[k] as Node3D).visible = false
+		_face_sets.append(sets)
+	# ปากอ้ากลมเล็ก กับปากยิ้มกว้าง
+	_mouth_open = _group(_torso)
+	_mouth_open.position = face + Vector3(0.0, -0.155, 0.49)
+	_part(_mouth_open, _ball(0.034), eye, Vector3.ZERO, Vector3(0.9, 1.1, 0.4))
+	_part(_mouth_open, _ball(0.018), _mat(Color(0.95, 0.5, 0.55), 0.6, 0.2), Vector3(0.0, -0.012, 0.012), Vector3(1.0, 0.7, 0.4))
+	_mouth_open.visible = false
+	_mouth_smile = _group(_torso)
+	_mouth_smile.position = face + Vector3(0.0, -0.14, 0.5)
+	var grin := []
+	for n in 9:
+		var a := PI * (0.1 + 0.8 * float(n) / 8.0)
+		grin.append(Vector3(cos(a) * 0.06, -sin(a) * 0.035, 0.0))
+	_stroke(_mouth_smile, grin, 0.012, eye)
+	_mouth_smile.visible = false
+
+## อารมณ์ตอนนี้จากสถานะตัวละคร
+## idle ปกติ  big วิ่ง  fierce ตีคอมโบ Z  squint ท่าพิเศษ สกิล HYPER  dizzy โดนตี  ko หมดเลือด  happy เลเวลอัป
+func _mood_now() -> String:
+	if face_test != "":
+		return face_test
+	if hero == null or stage_mode:
+		return "idle"
+	if hero.hp <= 0.0:
+		return "ko"
+	if hero.hurt_t > 0.0:
+		return "dizzy"
+	if hero.face_t > 0.0 and hero.face_kind != "":
+		return hero.face_kind
+	if hero.in_hyper():
+		return "squint"
+	if hero.plain_swing > 0.0:
+		if hero.plain_swing_kind == "combo" and (hero.plain_combo_nth >= 99 or hero.plain_move.get("sa", false) or hero.plain_move.get("charge_glow", false)):
+			return "squint"
+		return "fierce"
+	if hero.cheer_t > 0.0:
+		return "happy"
+	if _run_k > 0.5 and absf(hero.vel.x) > 0.5:
+		return "big"
+	return "idle"
+
+## เปิดชุดตาของอารมณ์นี้ ซ่อนตาเดิม ตาม position/หมุนของตาเดิม
+func _apply_face(mood: String) -> void:
+	_face_mood = mood
+	var plain := mood == "idle"
+	for i in _cat_eyes.size():
+		var eye := _cat_eyes[i] as MeshInstance3D
+		eye.visible = plain
+		if i >= _face_sets.size():
+			continue
+		var sets: Dictionary = _face_sets[i]
+		for k in sets:
+			var g := sets[k] as Node3D
+			g.visible = k == mood
+			if g.visible:
+				g.position = eye.position
+				g.rotation_degrees = eye.rotation_degrees
+	if _mouth_open != null:
+		_mouth_open.visible = mood in ["squint", "dizzy"]
+		_mouth_smile.visible = mood in ["happy", "big"]
+		_mouth_cat.visible = not (_mouth_open.visible or _mouth_smile.visible)
+
 ## แมวหายใจ กะพริบตา หูกระดิก และยืดยุบตามจังหวะฟาด
 func _animate_cat(delta: float) -> void:
 	if _cat_body == null:
@@ -2007,6 +2146,16 @@ func _animate_cat(delta: float) -> void:
 		else:
 			eye.position = home
 			eye.rotation_degrees.x = 0.0
+	if not _face_sets.is_empty():
+		var mood := _mood_now()
+		# ตาเดิมกะพริบปิดอยู่ ใช้ตาโค้งปิดแทน ตาโตก็กะพริบได้
+		if _blink > 0.0 and mood == "big":
+			mood = "shut"
+		_apply_face(mood)
+		if mood == "big":
+			for i in _face_sets.size():
+				var g := (_face_sets[i] as Dictionary)["big"] as Node3D
+				g.scale = Vector3.ONE * (1.0 + 0.04 * sin(hero._clock * 14.0))
 	var clock_f: float = hero._clock
 	var acting: bool = hero.plain_swing > 0.0 and hero.plain_swing_kind == "combo"
 	if _blade_fire != null:

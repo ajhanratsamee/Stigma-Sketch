@@ -14,7 +14,7 @@ const COMBO_HIT_HALF := 150.0
 const MONSTER_BODY_HALF := 46.0  # ครึ่งความกว้างหุ่นที่วาดจริง ดาบแตะขอบหุ่นก็นับ
 const BACK_MARGIN := 34.0
 const SKILL_GAP := 20.0
-const SLOT_COUNT := 8            # สองแถว แถวละ 4 ช่อง เห็นครบทั้ง 8 ช่อง
+const SLOT_COUNT := 4            # ช่องสกิล 4 ช่อง เรียงโค้งรอบปุ่ม Z X
 const SLOTS_PER_ROW := 4
 const SA_BUFF_TIME := 15.0
 const STAB_TIME := 0.8
@@ -256,15 +256,15 @@ func _ready() -> void:
 	joy.position = pad.stick_home
 	joy.home = pad.stick_home
 	joy.enabled = pad.use_stick
-	# โซนแตะจอย ฝั่งซ้ายใต้การ์ดเลือด ไม่ทับช่องสกิล
-	var cells_left: float = (pad.buttons["s0"] as Vector2).x - TouchPad.CELL * 0.5 - 30.0
-	joy.zone = Rect2(Vector2(0.0, 210.0), Vector2(cells_left, _view.y - 210.0))
+	# จอยลอย แตะตรงไหนก็ได้ครึ่งซ้ายของจอ (ใต้การ์ดเลือด) จอยเกิดใต้นิ้ว ไม่ต้องเล็งลูกศร
+	var cells_left: float = minf((pad.buttons["s0"] as Vector2).x - TouchPad.CELL * 0.5 - 40.0, _view.x * 0.55)
+	joy.zone = Rect2(Vector2(0.0, 200.0), Vector2(cells_left, _view.y - 200.0))
 	pad.stick = joy
 	add_child(joy)
 	for id in HIDDEN_BUTTONS:
 		pad.buttons.erase(id)
 	pad.locked = LOCKED_BUTTONS.duplicate()
-	pad.buttons["back"] = Vector2(_view.x - BACK_MARGIN - TouchPad.SLOT_RADIUS, BACK_MARGIN + TouchPad.SLOT_RADIUS)
+	pad.buttons["back"] = Vector2(_view.x - BACK_MARGIN - UiStyle.safe_side() - TouchPad.SLOT_RADIUS, BACK_MARGIN + TouchPad.SLOT_RADIUS)
 	pad.buttons["combo"] = pad.buttons["back"] + Vector2(-TouchPad.SLOT_RADIUS * 2.0 - SKILL_GAP, 0.0)
 	pad.buttons["skill"] = pad.buttons["combo"] + Vector2(-TouchPad.SLOT_RADIUS * 2.0 - SKILL_GAP, 0.0)
 	# AZURE/LAPIS ปุ่ม V สลับตัว หน้าปุ่ม Z
@@ -581,7 +581,7 @@ func _on_button(id: String) -> void:
 			if hyper_id != "":
 				_skill_button = id
 				_use_skill(hyper_id)
-		"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7":
+		"s0", "s1", "s2", "s3":
 			_skill_button = id
 			_use_skill(_slots()[int(id.substr(1))])
 
@@ -621,7 +621,6 @@ func menu_items() -> Array:
 func _draw_cds() -> void:
 	if not pad.visible:
 		return
-	var font := Sketch.font()
 	var cells := []
 	for i in pad.slot_ids.size():
 		cells.append(["s%d" % i, str(pad.slot_ids[i])])
@@ -633,11 +632,7 @@ func _draw_cds() -> void:
 			continue
 		var r: Rect2 = pad.cell_rect(c[0])
 		var k := clampf(left / maxf(Stats.skill_cd(chosen_weapon, id), 0.01), 0.0, 1.0)
-		UiStyle.fill(_cd_ui, Rect2(r.position + Vector2(0.0, r.size.y * (1.0 - k)), Vector2(r.size.x, maxf(r.size.y * k, 8.0))), Color(0.1, 0.05, 0.15, 0.45), minf(UiStyle.RADIUS, r.size.y * k * 0.5))
-		var word := "%d" % ceili(left)
-		var w := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30).x
-		_cd_ui.draw_string_outline(font, r.get_center() + Vector2(-w * 0.5, 11.0), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30, 6, Color(0.1, 0.05, 0.15))
-		_cd_ui.draw_string(font, r.get_center() + Vector2(-w * 0.5, 11.0), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30, Color.WHITE)
+		TouchPad.draw_cd(_cd_ui, r, k, left)
 
 ## หยุดเวลาชั่วครู่ตอนปล่อยสกิลใหญ่ มอนนิ่ง ฉากหลังมืดลง ตัวละครยังขยับได้
 func time_stop(t: float) -> void:
@@ -825,6 +820,9 @@ func _slots() -> Array:
 		empty.resize(SLOT_COUNT)
 		empty.fill("")
 		equipped[key] = empty
+	# ของเก่ามี 8 ช่อง ตัดเหลือ 4
+	if (equipped[key] as Array).size() > SLOT_COUNT:
+		(equipped[key] as Array).resize(SLOT_COUNT)
 	return equipped[key]
 
 ## สกิลที่ใส่อยู่ถอดออก สกิลใหม่ลงช่องว่างแรก

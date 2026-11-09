@@ -33,25 +33,32 @@ static func sky(c: Node2D, p) -> void:
 static func clouds(c: Node2D, p) -> void:
 	if p.style == "underground":
 		# หยดคริสตัลเรืองแสงลอยช้าๆ แทนเมฆ
-		var spanu: float = p._span(0.04)
-		var xu := -spanu
-		while xu < spanu:
-			var col: Color = p.pal("accent")
-			SoftPaint.oval(c, Vector2(xu, p._rng.randf_range(40.0, 200.0)), 10.0, 10.0, Color(col, 0.35), 0.8)
+		var col: Color = p.pal("accent")
+		var dots := []
+		var xu := 0.0
+		while xu < TownPage.CLOUD_TILE - 80.0:
+			dots.append(Vector2(xu, p._rng.randf_range(40.0, 200.0)))
 			xu += p._rng.randf_range(80.0, 160.0)
+		for t in p.cloud_tiles():
+			for d in dots:
+				SoftPaint.oval(c, (d as Vector2) + Vector2(t, 0.0), 10.0, 10.0, Color(col, 0.35), 0.8)
 		return
-	var span: float = p._span(0.04)
-	var x := -span
+	# ลายเมฆหนึ่งช่วงวาดซ้ำ ลอยเองได้ไม่ขาดช่วง
 	var col2 := Color(1.0, 1.0, 1.0, 0.75) if p.style != "lava" else Color(0.85, 0.75, 0.75, 0.6)
-	while x < span:
+	var puffs := []
+	var x := 0.0
+	while x < TownPage.CLOUD_TILE - 200.0:
 		var y: float = p._rng.randf_range(30.0, 120.0)
 		for n in 4:
-			SoftPaint.oval(c, Vector2(x + float(n) * 40.0, y + p._rng.randf_range(-10.0, 10.0)), p._rng.randf_range(40.0, 64.0), p._rng.randf_range(18.0, 28.0), col2, 0.5)
+			puffs.append([Vector2(x + float(n) * 40.0, y + p._rng.randf_range(-10.0, 10.0)), p._rng.randf_range(40.0, 64.0), p._rng.randf_range(18.0, 28.0)])
 		x += p._rng.randf_range(320.0, 520.0)
+	for t in p.cloud_tiles():
+		for pf in puffs:
+			SoftPaint.oval(c, (pf[0] as Vector2) + Vector2(t, 0.0), pf[1], pf[2], col2, 0.5)
 
 # ---------------------------------------------------------------- ฉากไกล
 static func far(c: Node2D, p) -> void:
-	var span: float = p._span(0.1)
+	var span: float = p._span(TownPage.PAR_FAR)
 	var low: float = p._ground_y()
 	match p.style:
 		"harbor":
@@ -130,7 +137,7 @@ static func _ears_soft(c: CanvasItem, p, cx: float, top: float, gap: float, size
 
 # ---------------------------------------------------------------- ฉากกลาง (เงาอาคารใหญ่ ต้นไม้)
 static func mid(c: Node2D, p) -> void:
-	var span: float = p._span(0.3)
+	var span: float = p._span(TownPage.PAR_MID)
 	var low: float = p._ground_y() - 40.0
 	var x := -span
 	var n := 0
@@ -358,7 +365,7 @@ static func _eyes(c: CanvasItem, cx: float, y: float, gap: float) -> void:
 
 # ---------------------------------------------------------------- ชั้นหน้า ใกล้กล้อง
 static func front(c: Node2D, p) -> void:
-	var span: float = p._span(1.25)
+	var span: float = p._span(TownPage.PAR_FRONT)
 	var y: float = p._view.y - 30.0
 	var x := -span
 	while x < span:

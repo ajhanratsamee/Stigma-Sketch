@@ -83,7 +83,7 @@ func _ready() -> void:
 	_town = TownData.town(current_town) if current_town < TownData.TOWNS.size() else {}
 	style = str(_town.get("style", "street"))
 	# ในเมืองโจมตีและใช้สกิลไม่ได้ ซ่อนปุ่มโจมตี ช่องสกิล HYPER
-	for id in ["z", "x", "hyper", "down", "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7"]:
+	for id in ["z", "x", "hyper", "down", "s0", "s1", "s2", "s3"]:
 		pad.buttons.erase(id)
 	pad.queue_redraw()
 	# หมอกจางๆ คลุมฉากทั้งหมด ฉากดูไกลขึ้น ตัวละครเด่น
@@ -171,6 +171,11 @@ func _follow(delta: float) -> void:
 			continue
 		(l[0] as Node2D).position.x = 0.0 if f <= 0.0 else _view.x * 0.5 - cam * f
 		(l[0] as Node2D).position.y = 0.0 if f <= 0.0 else cam_y * minf(f, 1.0) * 0.5
+	# เมฆลอยเองช้าๆ (เลื่อนตำแหน่ง ไม่วาดใหม่) พุ่มไม้หน้าสุดติดขอบล่างจอเสมอ
+	if is_instance_valid(_cloud_node):
+		_cloud_node.position.x += fposmod(float(Time.get_ticks_msec()) * 0.001 * CLOUD_DRIFT, CLOUD_TILE)
+	if is_instance_valid(_tufts):
+		_tufts.position.y = 0.0
 	if _planet != null:
 		_planet.position = Vector2(_view.x * 0.5, _ground_y() + PLANET_R)
 		_planet.rotation = -cam / PLANET_R
@@ -180,17 +185,30 @@ func _follow(delta: float) -> void:
 func go_back() -> void:
 	get_tree().change_scene_to_file("res://roster.tscn")
 
-# ---------------------------------------------------------------- ปุ่มเข้าดันเจี้ยน ใต้ปุ่มสกิลกับคอมโบ
+# ---------------------------------------------------------------- ปุ่มเมนูพับเก็บ (เข้าดันเจี้ยน เควส) ซ้ายของปุ่มสกิล
+var menu_open := false            # เมนูด่วนกางอยู่
+
+## ปุ่มเมนูกลม (สามขีด) ซ้ายของปุ่มสกิล
+func menu_center() -> Vector2:
+	return pad.buttons["skill"] + Vector2(-TouchPad.SLOT_RADIUS * 2.0 - 20.0, 0.0)
+
+## รายการในเมนูที่กางลงมาใต้แถวปุ่มขวาบน ชิดขวา
 func dungeon_rect() -> Rect2:
 	var r := TouchPad.SLOT_RADIUS
-	var left: Vector2 = pad.buttons["skill"]
 	var right: Vector2 = pad.buttons["back"]
-	return Rect2(Vector2(left.x - r, left.y + r + 14.0), Vector2(right.x - left.x + r * 2.0, 62.0))
+	var w := 290.0
+	return Rect2(Vector2(right.x + r - w, right.y + r + 16.0), Vector2(w, 62.0))
 
-## ปุ่มกระดานเควส ซ้ายของปุ่มเข้าดันเจี้ยน
 func quest_rect() -> Rect2:
 	var d := dungeon_rect()
-	return Rect2(d.position - Vector2(170.0, 0.0), Vector2(156.0, d.size.y))
+	return Rect2(d.position + Vector2(0.0, d.size.y + 10.0), d.size)
+
+func _menu_hit(at: Vector2) -> bool:
+	return at.distance_to(menu_center()) <= TouchPad.SLOT_RADIUS * TouchPad.TOUCH_GROW
+
+func set_menu(on: bool) -> void:
+	menu_open = on
+	_ui.queue_redraw()
 
 func open_quests() -> void:
 	quests.open()
@@ -236,32 +254,56 @@ func _input(event: InputEvent) -> void:
 			_act(_near)
 			return
 		var tapped := _npc_at(event.position)
-		if tapped != null:
+		# แตะตัว NPC คุยได้เฉพาะตอนยืนใกล้เท่านั้น อยู่ไกลแตะไม่ได้ ต้องเดินไปหา
+		if tapped != null and absf(hero.pos.x - float(tapped.data.get("x", 0.0))) < NEAR:
 			_talk(tapped.data)
 			return
 	if map.visible:
 		map.tap(event.position)
 	elif quests.visible:
 		quests.tap(event.position)
-	elif _ui.visible and hyper == null and not panel.visible and dungeon_rect().has_point(event.position):
+	elif _ui.visible and hyper == null and not panel.visible and _menu_hit(event.position):
+		set_menu(not menu_open)
+	elif _ui.visible and hyper == null and not panel.visible and menu_open and dungeon_rect().has_point(event.position):
+		set_menu(false)
 		open_map()
-	elif _ui.visible and hyper == null and not panel.visible and quest_rect().has_point(event.position):
+	elif _ui.visible and hyper == null and not panel.visible and menu_open and quest_rect().has_point(event.position):
+		set_menu(false)
 		open_quests()
+	elif menu_open:
+		set_menu(false)
 
 func _draw_ui() -> void:
 	_draw_action()
-	var r := dungeon_rect()
-	UiStyle.box(_ui, r, 703)
-	UiStyle.text(_ui, r.get_center(), "เข้าดันเจี้ยน", 28, UiStyle.INK, r.size.x - 20.0)
-	# ปุ่มกระดานเควส
-	var qr := quest_rect()
-	UiStyle.box(_ui, qr, 704)
-	UiStyle.text(_ui, qr.get_center(), "เควส", 28, UiStyle.INK, qr.size.x - 20.0)
 	var font := Sketch.font()
-	if quest_alert():
-		var qc := Vector2(qr.end.x - 6.0, qr.position.y + 4.0)
-		_ui.draw_circle(qc, 16.0, Color(0.9, 0.25, 0.25))
-		_ui.draw_string(font, qc + Vector2(-4.0, 9.0), "!", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 26, Color.WHITE)
+	var alert := quest_alert()
+	# ปุ่มเมนูกลม สามขีด
+	var mc := menu_center()
+	var mr := TouchPad.SLOT_RADIUS
+	_ui.draw_circle(mc, mr, Sketch.PAPER)
+	var ring := Sketch.oval(mc, mr, mr, 48)
+	ring.append(ring[0])
+	Sketch.line(_ui, ring, 705, TouchPad.RING_DOWN if menu_open else TouchPad.RING, Sketch.WOBBLE)
+	for k in [-1.0, 0.0, 1.0]:
+		var yy: float = mc.y + k * 11.0
+		_ui.draw_line(Vector2(mc.x - 16.0, yy), Vector2(mc.x + 16.0, yy), UiStyle.INK, 4.5, true)
+		_ui.draw_circle(Vector2(mc.x - 16.0, yy), 2.25, UiStyle.INK)
+		_ui.draw_circle(Vector2(mc.x + 16.0, yy), 2.25, UiStyle.INK)
+	if alert and not menu_open:
+		var ac := mc + Vector2(mr * 0.72, -mr * 0.72)
+		_ui.draw_circle(ac, 14.0, Color(0.9, 0.25, 0.25))
+		_ui.draw_string(font, ac + Vector2(-4.0, 9.0), "!", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 24, Color.WHITE)
+	if menu_open:
+		var r := dungeon_rect()
+		UiStyle.box(_ui, r, 703)
+		UiStyle.text(_ui, r.get_center(), "เข้าดันเจี้ยน", 28, UiStyle.INK, r.size.x - 20.0)
+		var qr := quest_rect()
+		UiStyle.box(_ui, qr, 704)
+		UiStyle.text(_ui, qr.get_center(), "เควส", 28, UiStyle.INK, qr.size.x - 20.0)
+		if alert:
+			var qc := Vector2(qr.end.x - 6.0, qr.position.y + 4.0)
+			_ui.draw_circle(qc, 16.0, Color(0.9, 0.25, 0.25))
+			_ui.draw_string(font, qc + Vector2(-4.0, 9.0), "!", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 26, Color.WHITE)
 	# ชื่อเมืองบนริบบิ้นกลางด้านบน
 	var title: String = DungeonData.town_name(current_town)
 	var tw := font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30).x
@@ -277,8 +319,29 @@ func _draw_ui() -> void:
 func _ground_y() -> float:
 	return _view.y * GROUND_AT
 
+# ตัวคูณพารัลแลกซ์ ไกลเลื่อนช้า ใกล้เลื่อนเร็ว ไล่ระดับชัดๆ ให้ฉากมีมิติลึก
+const PAR_CLOUDS := 0.1
+const PAR_FAR := 0.2          # ภูเขา ฉากไกล
+const PAR_FORT := 0.35        # ป้อมแมวกลางเมือง
+const PAR_MID := 0.6          # กำแพงเมือง ฉากกลาง
+const PAR_FRONT := 1.35       # ชั้นหน้าใกล้กล้อง
+const CLOUD_TILE := 1800.0    # เมฆวาดเป็นลายซ้ำทุกช่วงนี้ เลื่อนลอยเองได้ไม่มีช่องโหว่
+const CLOUD_DRIFT := 9.0      # เมฆลอยเองกี่จุดภาพต่อวินาที
+var _cloud_node: Node2D
+var _tufts: Node2D
+
 func _span(factor: float) -> float:
 	return town_half * CombatData.UNIT * ZOOM * factor + _view.x
+
+## จุด x ที่ต้องวาดลายซ้ำของเมฆ (ครอบช่วงเลื่อนกล้องบวกระยะลอยหนึ่งช่วง)
+func cloud_tiles() -> Array:
+	var span := _span(PAR_CLOUDS) + CLOUD_TILE
+	var out := []
+	var x := -ceilf(span / CLOUD_TILE) * CLOUD_TILE
+	while x < span:
+		out.append(x)
+		x += CLOUD_TILE
+	return out
 
 func _soft(c: CanvasItem, pts: PackedVector2Array, color: Color) -> void:
 	SoftPaint.shape(c, pts, color, 0.06)
@@ -318,16 +381,20 @@ func _paint_sky(c: Node2D) -> void:
 	SoftPaint.oval(c, Vector2(_view.x * 0.8, low * 0.3), 36.0, 36.0, Color(1.0, 1.0, 0.94), 0.3)
 
 func _paint_clouds(c: Node2D) -> void:
-	var span := _span(0.04)
-	var x := -span
-	while x < span:
+	# ลายเมฆหนึ่งช่วง แล้ววาดซ้ำ เมฆลอยเองได้ไม่ขาดช่วง
+	var puffs := []
+	var x := 0.0
+	while x < CLOUD_TILE - 200.0:
 		var y := _rng.randf_range(30.0, 120.0)
 		for n in 4:
-			SoftPaint.oval(c, Vector2(x + float(n) * 40.0, y + _rng.randf_range(-10.0, 10.0)), _rng.randf_range(40.0, 64.0), _rng.randf_range(18.0, 28.0), Color(1.0, 1.0, 1.0, 0.75), 0.5)
+			puffs.append([Vector2(x + float(n) * 40.0, y + _rng.randf_range(-10.0, 10.0)), _rng.randf_range(40.0, 64.0), _rng.randf_range(18.0, 28.0)])
 		x += _rng.randf_range(320.0, 520.0)
+	for t in cloud_tiles():
+		for p in puffs:
+			SoftPaint.oval(c, (p[0] as Vector2) + Vector2(t, 0.0), p[1], p[2], Color(1.0, 1.0, 1.0, 0.75), 0.5)
 
 func _paint_mountains(c: Node2D) -> void:
-	var span := _span(0.1)
+	var span := _span(PAR_FAR)
 	var low := _ground_y()
 	for layer in 2:
 		var pts := PackedVector2Array([Vector2(-span, low)])
@@ -379,7 +446,7 @@ func _paint_fortress(c: Node2D) -> void:
 
 ## กำแพงเมือง เชิงเทินเป็นหูแมวคู่ หอคอยหัวแมวเป็นช่วงๆ ธงน้ำเงิน
 func _paint_wall(c: Node2D) -> void:
-	var span := _span(0.45)
+	var span := _span(PAR_MID)
 	var low := _ground_y() - ROW_BACK + 4.0
 	var stone := Color(0.86, 0.8, 0.72)
 	_soft(c, _rect(-span, low - 90.0, span * 2.0, 90.0), stone)
@@ -666,7 +733,7 @@ func _paint_row(c: Node2D) -> void:
 
 ## ชั้นล่างใกล้กล้อง หลังคาบ้านย่านล่างโค้งมนโผล่เหนือคลอง เรือ โคมแขวน บอกว่ามีชั้นล่างแต่ลงไปไม่ได้
 func _paint_front(c: Node2D) -> void:
-	var span := _span(1.25)
+	var span := _span(PAR_FRONT)
 	var top := _ground_y() + STREET_FRONT + 80.0
 	var x := -span
 	var n := 0
@@ -746,18 +813,22 @@ func _build_floor() -> void:
 	var classic := style == "street" and str(floor_data().get("deco", "houses")) == "houses"
 	var painters: Array
 	if classic:
-		painters = [[0.0, _paint_sky], [0.04, _paint_clouds], [0.1, _paint_mountains], [0.22, _paint_fortress], [0.45, _paint_wall], [1.0, _paint_ground], [1.0, _paint_row]]
+		painters = [[0.0, _paint_sky], [PAR_CLOUDS, _paint_clouds], [PAR_FAR, _paint_mountains], [PAR_FORT, _paint_fortress], [PAR_MID, _paint_wall], [1.0, _paint_ground], [1.0, _paint_row]]
 	elif style == "curve":
-		painters = [[0.0, func(c: Node2D) -> void: TownScene.sky(c, self)], [0.04, func(c: Node2D) -> void: TownScene.clouds(c, self)], [0.1, func(c: Node2D) -> void: TownScene.far(c, self)]]
+		painters = [[0.0, func(c: Node2D) -> void: TownScene.sky(c, self)], [PAR_CLOUDS, func(c: Node2D) -> void: TownScene.clouds(c, self)], [PAR_FAR, func(c: Node2D) -> void: TownScene.far(c, self)]]
 	else:
-		painters = [[0.0, func(c: Node2D) -> void: TownScene.sky(c, self)], [0.04, func(c: Node2D) -> void: TownScene.clouds(c, self)], [0.1, func(c: Node2D) -> void: TownScene.far(c, self)],
-			[0.3, func(c: Node2D) -> void: TownScene.mid(c, self)], [1.0, func(c: Node2D) -> void: TownScene.ground(c, self)], [1.0, func(c: Node2D) -> void: TownScene.row(c, self)]]
+		painters = [[0.0, func(c: Node2D) -> void: TownScene.sky(c, self)], [PAR_CLOUDS, func(c: Node2D) -> void: TownScene.clouds(c, self)], [PAR_FAR, func(c: Node2D) -> void: TownScene.far(c, self)],
+			[PAR_MID, func(c: Node2D) -> void: TownScene.mid(c, self)], [1.0, func(c: Node2D) -> void: TownScene.ground(c, self)], [1.0, func(c: Node2D) -> void: TownScene.row(c, self)]]
 	# ชั้นที่มีภูมิประเทศ พื้นกับแถวบ้านวาดในโลกตามเนินแทน (ไม่ใช้ชั้นพื้นเรียบ)
 	if not _tdata.is_empty():
 		painters = painters.filter(func(pp: Array) -> bool: return float(pp[0]) < 1.0)
+	_cloud_node = null
+	_tufts = null
 	for i in painters.size():
 		var node := _layer(float(painters[i][0]), painters[i][1])
 		move_child(node, i)
+		if float(painters[i][0]) == PAR_CLOUDS:
+			_cloud_node = node
 		if classic and i == painters.size() - 1:
 			node.scale = Vector2.ONE * ROW_SCALE
 		# ฉากไกลจางลง ไม่แย่งสายตากับแถวบ้าน
@@ -774,10 +845,15 @@ func _build_floor() -> void:
 		move_child(_planet, painters.size())
 	if _tdata.is_empty():
 		var front_painter: Callable = _paint_front if classic else (func(c: Node2D) -> void: TownScene.front(c, self))
-		_front = _layer(1.25, front_painter)
+		_front = _layer(PAR_FRONT, front_painter)
 		move_child(_front, world.get_index() + 1)
 		_front.modulate = Color(1.0, 1.0, 1.0, 0.75)
 	else:
+		# ชั้นมีเนิน ไม่มีชั้นหน้าแบบเดิม ใส่พุ่มไม้กระดาษตัดชิดขอบล่างจอแทน เลื่อนเร็วกว่าพื้น
+		var tkind := ForeTufts.kind_for_town(style)
+		if tkind != "":
+			_tufts = _layer(ForeTufts.FACTOR, func(c: Node2D) -> void: ForeTufts.paint(c, tkind, _span(ForeTufts.FACTOR), _view.y, _rng))
+			move_child(_tufts, world.get_index() + 1)
 		_terrain = Node2D.new()
 		_terrain.scale = Vector2.ONE / ZOOM
 		var tseed := 1700 + current_town * 10 + _floor
@@ -851,6 +927,14 @@ func _prop_label(it: Dictionary) -> String:
 			return str((fl[to] as Dictionary).get("name", "")) if to >= 0 and to < fl.size() else ""
 	return ""
 
+## ของชิ้นนี้คือของที่ใกล้ตัวละครที่สุดตอนนี้ (ป้ายชื่อขึ้นเฉพาะอันนี้)
+func _is_near(it: Dictionary) -> bool:
+	return not _near.is_empty() and str(_near.get("kind", "")) == str(it.get("kind", "")) and float(_near.get("x", 0.0)) == float(it.get("x", 0.0))
+
+## NPC ตัวนี้อยู่ใกล้พอให้ขึ้นป้ายชื่อ
+func npc_label_on(n: TownNpc) -> bool:
+	return hero != null and absf(hero.pos.x - n.x_units()) < NEAR * 1.4
+
 func _draw_props() -> void:
 	_draw_props_on(_props, false)
 
@@ -864,10 +948,10 @@ func _draw_props_on(c: CanvasItem, on_planet: bool) -> void:
 		if on_planet:
 			var a := x * ZOOM / PLANET_R
 			c.draw_set_transform(Vector2(sin(a), -cos(a)) * PLANET_R, a, Vector2.ONE * ZOOM)
-			TownScene.prop(c, kind, Vector2.ZERO, _prop_label(it), pal("accent"), bool(it.get("up", true)))
+			TownScene.prop(c, kind, Vector2.ZERO, _prop_label(it) if _is_near(it) else "", pal("accent"), bool(it.get("up", true)))
 			c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		else:
-			TownScene.prop(c, kind, Vector2(x, -4.0 - ground_h(float(it["x"])) * CombatData.UNIT), _prop_label(it), pal("accent"), bool(it.get("up", true)))
+			TownScene.prop(c, kind, Vector2(x, -4.0 - ground_h(float(it["x"])) * CombatData.UNIT), _prop_label(it) if _is_near(it) else "", pal("accent"), bool(it.get("up", true)))
 	# จดหมายใหม่ ขึ้นเลขบนตู้
 	var mb: Dictionary = _town.get("mailbox", {})
 	if _mail_count > 0 and not mb.is_empty() and int(mb.get("floor", 0)) == _floor:
@@ -896,6 +980,11 @@ func _tick_town(delta: float) -> void:
 	if str(best.get("kind", "")) != str(_near.get("kind", "")) or float(best.get("x", 0.0)) != float(_near.get("x", 0.0)):
 		_near = best
 		_ui.queue_redraw()
+		# ป้ายชื่อขึ้นเฉพาะของที่อยู่ใกล้ วาดใหม่ตอนของใกล้เปลี่ยน
+		if _props != null:
+			_props.queue_redraw()
+		if _planet != null:
+			_planet.queue_redraw()
 	# เช็กเควสที่ NPC ให้ได้ กับจดหมายใหม่ ทุก 1.5 วิ
 	_poll -= delta
 	if _poll <= 0.0:

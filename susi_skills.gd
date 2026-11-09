@@ -1448,11 +1448,7 @@ func _draw_ui() -> void:
 				continue
 			var r: Rect2 = page.pad.cell_rect("s%d" % i)
 			var k := clampf(left / maxf(cooldown(id), 0.01), 0.0, 1.0)
-			ui.draw_rect(Rect2(r.position + Vector2(0.0, r.size.y * (1.0 - k)), Vector2(r.size.x, r.size.y * k)), Color(0.1, 0.05, 0.15, 0.45))
-			var word := "%d" % ceili(left)
-			var w := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30).x
-			ui.draw_string_outline(font, r.get_center() + Vector2(-w * 0.5, 11.0), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30, 6, Color(0.1, 0.05, 0.15))
-			ui.draw_string(font, r.get_center() + Vector2(-w * 0.5, 11.0), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30, Color.WHITE)
+			TouchPad.draw_cd(ui, r, k, left)
 	# ระหว่าง HYPER ซ่อนเกจธาตุ ให้จอเป็นภาพล้วน
 	if has("su_em_memory") and not is_instance_valid(page.hyper):
 		_draw_memory(font)

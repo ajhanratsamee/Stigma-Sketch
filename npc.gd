@@ -66,10 +66,12 @@ func _draw_label() -> void:
 		return
 	var y := -250.0 * float((data.get("look", {}) as Dictionary).get("size", 1.0))
 	var font := Sketch.font()
-	var w := font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1.0, NAME_SIZE).x
-	var r := Rect2(Vector2(-w * 0.5 - 16.0, y - 30.0), Vector2(w + 32.0, 54.0))
-	UiStyle.fill(_label, r, Color(1.0, 0.99, 0.96, 0.85), 14.0)
-	_label.draw_string(font, Vector2(-w * 0.5, y + 12.0), nm, HORIZONTAL_ALIGNMENT_LEFT, -1.0, NAME_SIZE, UiStyle.INK)
+	# ป้ายชื่อขึ้นเฉพาะตอนตัวละครเดินมาใกล้ ตัวที่อยู่ไกลซ่อนไว้ ไม่รกจอ (เครื่องหมาย ! เควสยังขึ้นตลอด)
+	if page == null or not page.has_method("npc_label_on") or page.npc_label_on(self):
+		var w := font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1.0, NAME_SIZE).x
+		var r := Rect2(Vector2(-w * 0.5 - 16.0, y - 30.0), Vector2(w + 32.0, 54.0))
+		UiStyle.fill(_label, r, Color(1.0, 0.99, 0.96, 0.85), 14.0)
+		_label.draw_string(font, Vector2(-w * 0.5, y + 12.0), nm, HORIZONTAL_ALIGNMENT_LEFT, -1.0, NAME_SIZE, UiStyle.INK)
 	if talk_mark:
 		# เมืองแรกๆ เครื่องหมายใหญ่ขึ้น ผู้เล่นใหม่เห็นชัด
 		var k := 1.6 if WalkPage.current_town <= 1 else 1.0

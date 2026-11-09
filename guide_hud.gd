@@ -5,6 +5,9 @@ extends Node2D
 ## ลูกศรอุ้งเท้าชี้ทางในเมือง  คำใบ้ครั้งแรก (จำต่อตัวละครใน entry["hints"])
 
 const BANNER := Rect2(26.0, 168.0, 470.0, 58.0)
+const MINI_R := 28.0          # แบนเนอร์พับเหลือไอคอนอุ้งเท้ากลม
+const AUTO_FOLD := 7.0        # ผู้เล่นคุ้นแล้ว (เลเวล 10 ขึ้นไป) แบนเนอร์โชว์เท่านี้วินาทีแล้วพับเอง
+const FAMILIAR_LV := 10
 const TOAST_W := 500.0
 const TOAST_TIME := 5.0
 const NPC_LIFT := 70.0      # จุดที่ชี้ ระดับลำตัวของ NPC
@@ -57,6 +60,7 @@ func _process(delta: float) -> void:
 		_poll = 1.0
 		_refresh()
 		_check_events()
+	_tick_fold(delta)
 	for t in _toasts.slice(0, 1):
 		t[1] = float(t[1]) - minf(delta, 0.1)
 	if not _toasts.is_empty() and float(_toasts[0][1]) <= 0.0:
@@ -143,11 +147,33 @@ func _has_skill(lv: int) -> bool:
 	return false
 
 # ---------------------------------------------------------------- แตะ
+var folded := false            # แบนเนอร์พับเหลือไอคอน
+var _goal_text := ""
+var _shown_t := 0.0
+
 func banner_rect() -> Rect2:
-	return BANNER
+	return Rect2(BANNER.position + Vector2(UiStyle.safe_side(), 0.0), BANNER.size)
+
+## ไอคอนตอนพับ มุมซ้ายของแบนเนอร์
+func mini_center() -> Vector2:
+	return banner_rect().position + Vector2(MINI_R + 2.0, BANNER.size.y * 0.5)
 
 func _close_rect() -> Rect2:
-	return Rect2(BANNER.end.x - 44.0, BANNER.position.y + 8.0, 38.0, 38.0)
+	var b := banner_rect()
+	return Rect2(b.end.x - 44.0, b.position.y + 8.0, 38.0, 38.0)
+
+## เป้าหมายเปลี่ยน กางแบนเนอร์ใหม่  ผู้เล่นคุ้นแล้วพับเองหลังโชว์ครู่หนึ่ง
+func _tick_fold(delta: float) -> void:
+	var word := str(_goal.get("text", ""))
+	if word != _goal_text:
+		_goal_text = word
+		_shown_t = 0.0
+		folded = false
+	if folded:
+		return
+	_shown_t += delta
+	if int(_entry.get("level", 1)) >= FAMILIAR_LV and _shown_t > AUTO_FOLD:
+		folded = true
 
 func _toast_rect() -> Rect2:
 	var v := get_viewport_rect().size
@@ -167,11 +193,17 @@ func _input(event: InputEvent) -> void:
 		return
 	if _hidden or _goal.is_empty():
 		return
+	if folded:
+		if at.distance_to(mini_center()) <= MINI_R * 1.3:
+			folded = false
+			_shown_t = 0.0
+			get_viewport().set_input_as_handled()
+		return
 	if _close_rect().has_point(at):
-		_hidden = true
+		folded = true
 		get_viewport().set_input_as_handled()
 		return
-	if BANNER.has_point(at):
+	if banner_rect().has_point(at):
 		_open_log()
 		get_viewport().set_input_as_handled()
 
@@ -214,14 +246,25 @@ func _draw() -> void:
 	if page == null or _busy():
 		return
 	if not _hidden and not _goal.is_empty():
-		_draw_banner()
+		if folded:
+			_draw_mini()
+		else:
+			_draw_banner()
 		if page is TownPage:
 			_draw_pointer()
 	if not _toasts.is_empty():
 		_draw_toast(str(_toasts[0][0]), float(_toasts[0][1]))
 
+## แบนเนอร์พับ: วงกลมอุ้งเท้า แตะเพื่อกางดูเป้าหมาย
+func _draw_mini() -> void:
+	var c := mini_center()
+	draw_circle(c + Vector2(2.0, 3.0), MINI_R, Color(0.0, 0.0, 0.0, 0.1))
+	draw_circle(c, MINI_R, Color(1.0, 0.97, 0.88, 0.96))
+	draw_arc(c, MINI_R, 0.0, TAU, 32, UiStyle.INK, UiStyle.LINE, true)
+	UiStyle.paw(self, c + Vector2(0.0, sin(_t * 4.0) * 1.5), 13.0, Color(1.0, 0.6, 0.45))
+
 func _draw_banner() -> void:
-	var r := BANNER
+	var r := banner_rect()
 	UiStyle.fill(self, Rect2(r.position + Vector2(3.0, 4.0), r.size), Color(0.0, 0.0, 0.0, 0.1))
 	UiStyle.box(self, r, 811, UiStyle.LINE, UiStyle.INK, Color(1.0, 0.97, 0.88, 0.96))
 	var bob := sin(_t * 4.0) * 2.0

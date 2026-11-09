@@ -1,35 +1,34 @@
 class_name TouchPad
 extends Node2D
-## ปุ่ม < > Z X JUMP และช่องสกิล 8 ช่อง 2 แถวกลางล่างจอ มี HYPER ต่อท้าย วาดด้วยเส้น กดหลายปุ่มพร้อมกันได้ เมาส์ก็ใช้ได้
+## ปุ่ม Z X JUMP ขวาล่าง ช่องสกิล 4 ช่องกับ HYPER เรียงโค้งรอบนอกตามแนวนิ้วโป้ง วาดด้วยเส้น กดหลายปุ่มพร้อมกันได้ เมาส์ก็ใช้ได้
 ## กดอยู่แล้วเส้นขอบหนาขึ้น
 
 signal pressed_button(id: String)
 
-const RADIUS := 66.0
+const RADIUS := 62.0
 const RING := 3.0
 const RING_DOWN := 6.5
 const GLYPH := 26.0
-const EDGE := 34.0
-const LOW := 96.0
-const GAP := 26.0
+const EDGE := 30.0
+const LOW := 92.0
+const GAP := 16.0               # ปุ่ม Z X ชิดกัน นิ้วโป้งเลื่อนสลับได้ไว
 const SLOT_RADIUS := 44.0
 const DOWN_RADIUS := 50.0
-const SLOTS := 8               # ช่องสกิล 2 แถว แถวละ 4 กลางล่างจอ
-const SLOT_COLS := 4
-const SLOT_GAP := 0.0           # ช่องสี่เหลี่ยมติดกันเป็นตาราง
-const CELL := 84.0              # ด้านของช่องสกิลสี่เหลี่ยม
-const SLOT_LOW := 20.0          # ช่องแถวล่างห่างขอบล่างจอ
+const SLOTS := 4               # ช่องสกิล 4 ช่อง เรียงโค้งรอบปุ่ม Z X ตามแนวนิ้วโป้ง
+const CELL := 76.0              # เส้นผ่านศูนย์กลางช่องสกิลกลม (เล็กกว่าปุ่ม Z X)
+const ARC_R := 262.0            # รัศมีแนวโค้งช่องสกิล วัดจากจุดหมุนนิ้วโป้ง
+const ARC_PIVOT := Vector2(-68.0, 12.0)   # จุดหมุนแนวโค้ง เทียบกับปุ่ม X
+const ARC_FROM := 180.0         # องศาเริ่ม (ซ้าย) ถึงองศาจบ (บน) ช่องสกิล 4 ช่อง แล้ว HYPER ปลายบนสุด
+const ARC_TO := 270.0
+const TOUCH_GROW := 1.15        # พื้นที่แตะกว้างกว่าวงที่เห็นเล็กน้อย
 const JUMP_RADIUS := 46.0       # ปุ่ม JUMP เล็กกว่าปุ่มอื่น
 const PSWAP_RADIUS := 46.0      # ปุ่ม V สลับตัว เล็กเท่าปุ่ม JUMP
 const SLOT_TEXT := 18
 const SKILL_TEXT := 24
 const COMBO_TEXT := UiStyle.SMALL
 const SWAP_RADIUS := 36.0
-const HYPER_RADIUS := 38.0
-const HYPER_AT := Vector2(103.0, 108.0)   # มุมองศา ระยะจากกึ่งกลางปุ่ม Z X อยู่ช่องว่างระหว่างปุ่มกับช่องสกิล
-const SWAP_LEFT := 100.0        # ปุ่มสลับแถว อยู่ซ้ายช่องสกิลล่างสุด
+const HYPER_RADIUS := 40.0
 const EMPTY_RING := Color(0.16, 0.15, 0.14, 0.35)
-const V_LEFT := 100.0            # ปุ่ม V อยู่หน้าปุ่มแถว
 
 # ตัวอักษรเขียนเป็นเส้น พิกัดในกรอบ -1 ถึง 1
 const LETTERS := {
@@ -56,11 +55,11 @@ var locked: Array = []        # ปุ่มที่แสดงอยู่แ
 var buttons := {}        # รหัสปุ่ม -> ตำแหน่ง
 var held := {}           # รหัสปุ่ม -> จำนวนนิ้วที่กดอยู่
 var _fingers := {}       # หมายเลขนิ้ว -> รหัสปุ่ม
-var slot_labels := ["", "", "", "", "", "", "", ""]
-var slot_ids := ["", "", "", "", "", "", "", ""]   # รหัสสกิลในแต่ละช่อง ใช้วาดไอคอน
+var slot_labels := ["", "", "", ""]
+var slot_ids := ["", "", "", ""]   # รหัสสกิลในแต่ละช่อง ใช้วาดไอคอน
 var hyper_id := ""
 var hyper_ready := false         # คลาสนี้มี HYPER ใช้ปุ่มแยก
-var slot_cooldowns := [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+var slot_cooldowns := [0.0, 0.0, 0.0, 0.0]
 var row := 0                    # แถวสกิลที่แสดงอยู่
 var pair_swap_on := false        # ปุ่ม V สลับตัว AZURE/LAPIS อยู่หน้าปุ่ม Z
 var pair_swap_cd := 0.0          # คูลดาวน์ที่เหลือ วินาที
@@ -71,35 +70,30 @@ var v_dna := false              # เกจรูป DNA ของ ROGUE MEDIC
 var v_stage := 0
 
 ## จัดตำแหน่งตามขนาดจอจริง
+## ขวาล่าง: X ชิดมุม Z ชิดซ้าย X  JUMP เยื้องขึ้นเหนือ X  ช่องสกิล 4 ช่องกับ HYPER เรียงโค้งรอบนอก ตามแนวนิ้วโป้ง
 func layout(view: Vector2) -> void:
 	var y := view.y - LOW
+	var xr := view.x - EDGE - UiStyle.safe_side() - RADIUS
 	buttons = {
 		"left": Vector2(EDGE + RADIUS, y),
-		"right": Vector2(EDGE + RADIUS * 3.0 + GAP, y),
-		"x": Vector2(view.x - EDGE - RADIUS, y),
-		"z": Vector2(view.x - EDGE - RADIUS * 3.0 - GAP, y),
-		"jump": Vector2(view.x - EDGE - RADIUS, y - RADIUS - GAP - JUMP_RADIUS),
+		"right": Vector2(EDGE + RADIUS * 3.0 + 26.0, y),
+		"x": Vector2(xr, y),
+		"z": Vector2(xr - RADIUS * 2.0 - GAP, y + 10.0),
+		"jump": Vector2(xr - 22.0, y - RADIUS - 20.0 - JUMP_RADIUS),
 	}
 	if pair_swap_on:
-		buttons["pswap"] = buttons["z"] + Vector2(-RADIUS - GAP - PSWAP_RADIUS, RADIUS - PSWAP_RADIUS)
+		buttons["pswap"] = buttons["z"] + Vector2(-18.0, -RADIUS - 18.0 - PSWAP_RADIUS)
 	stick_home = (buttons["left"] + buttons["right"]) * 0.5 + Vector2(0.0, -30.0)
 	if use_stick:
 		buttons.erase("left")
 		buttons.erase("right")
 	elif show_down:
 		buttons["down"] = (buttons["left"] + buttons["right"]) * 0.5 + Vector2(0.0, -RADIUS * 1.75)
-	# ช่องสกิล 2 แถว แถวละ 4 กลางล่างจอ HYPER ต่อท้ายทางขวา อยู่กึ่งกลางระหว่างสองแถว
-	# ตารางช่องสี่เหลี่ยม 4 x 2 ติดกัน HYPER เป็นช่องสูงสองแถวติดด้านขวา
-	var total := CELL * float(SLOT_COLS + 1)
-	var x0 := view.x * 0.5 - total * 0.5 + CELL * 0.5
-	var low := view.y - SLOT_LOW - CELL * 0.5
-	for i in SLOTS:
-		var col := i % SLOT_COLS
-		var line := floori(float(i) / float(SLOT_COLS))
-		buttons["s%d" % i] = Vector2(x0 + CELL * float(col), low - CELL * float(1 - line))
-	# HYPER ช่องเดียวต่อท้ายแถวล่าง
-	buttons["hyper"] = Vector2(x0 + CELL * float(SLOT_COLS), low)
-	v_center = buttons["s0"] + Vector2(-CELL * 1.2, -CELL * 0.5)
+	var pivot: Vector2 = buttons["x"] + ARC_PIVOT
+	for i in SLOTS + 1:
+		var ang := deg_to_rad(lerpf(ARC_FROM, ARC_TO, float(i) / float(SLOTS)))
+		buttons["s%d" % i if i < SLOTS else "hyper"] = pivot + Vector2(cos(ang), sin(ang)) * ARC_R
+	v_center = pivot + Vector2(cos(deg_to_rad(205.0)), sin(deg_to_rad(205.0))) * (ARC_R + 92.0)
 	queue_redraw()
 
 ## ปล่อยทุกปุ่ม ใช้ตอนเข้าออกจอภาพ
@@ -115,6 +109,8 @@ func _radius(id: String) -> float:
 		return SWAP_RADIUS
 	if id == "hyper":
 		return HYPER_RADIUS
+	if _is_slot(id):
+		return CELL * 0.5
 	if id == "jump" or id == "pswap":
 		return JUMP_RADIUS if id == "jump" else PSWAP_RADIUS
 	if id == "back" or id == "skill" or id == "combo":
@@ -160,25 +156,59 @@ func _finger_off(index: int) -> void:
 	held[id] = maxi(int(held.get(id, 0)) - 1, 0)
 	queue_redraw()
 
-## ช่องสกิลกับ HYPER เป็นสี่เหลี่ยม คืนกรอบ ปุ่มอื่นคืนกรอบว่าง
+## กรอบสี่เหลี่ยมรอบช่องสกิลกลมกับ HYPER (ใช้วางตัวเลขคูลดาวน์) ปุ่มอื่นคืนกรอบว่าง
 func cell_rect(id: String) -> Rect2:
-	if _is_slot(id):
-		return Rect2(buttons[id] - Vector2.ONE * CELL * 0.5, Vector2.ONE * CELL)
-	if id == "hyper":
-		return Rect2(buttons[id] - Vector2.ONE * CELL * 0.5, Vector2.ONE * CELL)
+	if (_is_slot(id) or id == "hyper") and buttons.has(id):
+		var r := _radius(id)
+		return Rect2(buttons[id] - Vector2.ONE * r, Vector2.ONE * r * 2.0)
 	return Rect2()
 
+const CD_SHADE := Color(0.35, 0.35, 0.38, 0.55)   # เงาเทาจางของคูลดาวน์
+
+## เงาคูลดาวน์แบบวงกลมกวาด (Radial) เริ่มเต็มวง แล้วกวาดตามเข็มนาฬิกาจากด้านบนจนหมด  k คือส่วนที่เหลือ (0-1)
+static func cd_fill(rect: Rect2, k: float) -> PackedVector2Array:
+	var c := rect.get_center()
+	var r := rect.size.x * 0.5
+	k = clampf(k, 0.0, 1.0)
+	var pts := PackedVector2Array()
+	if k <= 0.0:
+		return pts
+	# ส่วนที่เหลืออยู่ระหว่างมุมที่กวาดผ่านแล้วไปจนครบรอบที่ด้านบน
+	var start := -PI * 0.5 + TAU * (1.0 - k)
+	var end := -PI * 0.5 + TAU
+	var n := maxi(3, ceili(48.0 * k))
+	pts.append(c)
+	for i in n + 1:
+		var a := lerpf(start, end, float(i) / float(n))
+		pts.append(c + Vector2(cos(a), sin(a)) * r)
+	return pts
+
+## วาดคูลดาวน์บนปุ่ม: เงากวาด + ขอบวงที่เหลือ + ตัวเลขวินาที
+static func draw_cd(ci: CanvasItem, rect: Rect2, k: float, left: float) -> void:
+	var pts := cd_fill(rect, k)
+	if pts.size() >= 3:
+		ci.draw_colored_polygon(pts, CD_SHADE)
+	var c := rect.get_center()
+	var r := rect.size.x * 0.5
+	ci.draw_arc(c, r - 3.0, -PI * 0.5 + TAU * (1.0 - k), PI * 1.5, 40, Color(1.0, 1.0, 1.0, 0.85), 4.0, true)
+	var font := Sketch.font()
+	var word := "%d" % ceili(left)
+	var w := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30).x
+	ci.draw_string_outline(font, c + Vector2(-w * 0.5, 11.0), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30, 6, Color(0.15, 0.13, 0.12))
+	ci.draw_string(font, c + Vector2(-w * 0.5, 11.0), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 30, Color.WHITE)
+
+## ปุ่มที่ใกล้นิ้วที่สุด พื้นที่แตะกว้างกว่าวงที่เห็นเล็กน้อย
 func _button_at(at: Vector2) -> String:
-	if v_on and at.distance_to(v_center) <= SLOT_RADIUS:
+	if v_on and at.distance_to(v_center) <= SLOT_RADIUS * TOUCH_GROW:
 		return "v"
+	var best := ""
+	var best_k := INF
 	for id in buttons:
-		var cell := cell_rect(id)
-		if cell.size != Vector2.ZERO:
-			if cell.has_point(at):
-				return id
-		elif at.distance_to(buttons[id]) <= _radius(id):
-			return id
-	return ""
+		var k: float = at.distance_to(buttons[id]) / _radius(id)
+		if k <= TOUCH_GROW and k < best_k:
+			best_k = k
+			best = id
+	return best
 
 ## ปุ่ม V วงนอกคือเกจ เต็มวงแล้วเส้นหนาขึ้น
 func _draw_v() -> void:
@@ -214,18 +244,10 @@ func _draw() -> void:
 		var c: Vector2 = buttons[id]
 		var r := _radius(id)
 		var empty_slot: bool = (_is_slot(id) and slot_labels[int(id.substr(1))] == "") or (id == "hyper" and not hyper_ready)
-		var cell := cell_rect(id)
-		if cell.size != Vector2.ZERO:
-			# ช่องสี่เหลี่ยมติดกัน
-			draw_rect(cell, Sketch.PAPER)
-			var a := cell.position
-			var b := cell.end
-			Sketch.line(self, PackedVector2Array([a, Vector2(b.x, a.y), b, Vector2(a.x, b.y), a]), seed_no, RING_DOWN if is_held(id) else RING * 0.8, Sketch.WOBBLE * 0.4, EMPTY_RING if empty_slot and not is_held(id) else Sketch.INK)
-		else:
-			var ring := Sketch.oval(c, r, r, 64)
-			draw_colored_polygon(ring, Sketch.PAPER)   # บังเส้นพื้นที่ลากผ่านปุ่ม
-			ring.append(ring[0])
-			Sketch.line(self, ring, seed_no, RING_DOWN if is_held(id) else RING, Sketch.WOBBLE, EMPTY_RING if empty_slot else Sketch.INK)
+		var ring := Sketch.oval(c, r, r, 64)
+		draw_colored_polygon(ring, Color(Sketch.PAPER, 0.8) if empty_slot else Sketch.PAPER)   # บังเส้นพื้นที่ลากผ่านปุ่ม
+		ring.append(ring[0])
+		Sketch.line(self, ring, seed_no, RING_DOWN if is_held(id) else RING, Sketch.WOBBLE, EMPTY_RING if empty_slot and not is_held(id) else Sketch.INK)
 		seed_no += 10
 		if id == "swap":
 			var word := "แถว %d" % (row + 1)
@@ -234,10 +256,11 @@ func _draw() -> void:
 			continue
 		if id == "hyper":
 			if hyper_id != "":
-				SkillIcon.draw(self, c, CELL - 10.0, hyper_id, not hyper_ready)
-			var hw := Sketch.font().get_string_size("HYPER", HORIZONTAL_ALIGNMENT_LEFT, -1.0, COMBO_TEXT).x
-			draw_string_outline(Sketch.font(), c + Vector2(-hw * 0.5, 32.0 if hyper_id != "" else COMBO_TEXT * 0.36), "HYPER", HORIZONTAL_ALIGNMENT_LEFT, -1.0, COMBO_TEXT, 5, Sketch.PAPER)
-			draw_string(Sketch.font(), c + Vector2(-hw * 0.5, 32.0 if hyper_id != "" else COMBO_TEXT * 0.36), "HYPER", HORIZONTAL_ALIGNMENT_LEFT, -1.0, COMBO_TEXT, Sketch.INK if hyper_ready else EMPTY_RING)
+				SkillIcon.draw(self, c, HYPER_RADIUS * 2.0 - 10.0, hyper_id, not hyper_ready)
+			var hw := Sketch.font().get_string_size("HYPER", HORIZONTAL_ALIGNMENT_LEFT, -1.0, SLOT_TEXT).x
+			var hy := HYPER_RADIUS + SLOT_TEXT if hyper_id != "" else SLOT_TEXT * 0.36
+			draw_string_outline(Sketch.font(), c + Vector2(-hw * 0.5, hy), "HYPER", HORIZONTAL_ALIGNMENT_LEFT, -1.0, SLOT_TEXT, 5, Sketch.PAPER)
+			draw_string(Sketch.font(), c + Vector2(-hw * 0.5, hy), "HYPER", HORIZONTAL_ALIGNMENT_LEFT, -1.0, SLOT_TEXT, Sketch.INK if hyper_ready else EMPTY_RING)
 			continue
 		if id == "combo":
 			var combo_w := Sketch.font().get_string_size("คอมโบ", HORIZONTAL_ALIGNMENT_LEFT, -1.0, COMBO_TEXT).x
@@ -259,7 +282,6 @@ func _draw() -> void:
 			"x": _word("X", c, GLYPH, seed_no)
 			"pswap": _draw_pswap(c, seed_no)
 			"jump": _word("JUMP", c, GLYPH * 0.42, seed_no)
-	_draw_grid_frame()
 	if captions:
 		_draw_captions()
 
@@ -275,15 +297,6 @@ func _draw_pswap(c: Vector2, seed_no: int) -> void:
 		draw_string_outline(Sketch.font(), c + Vector2(-w * 0.5, PSWAP_RADIUS + 22.0), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22, 5, Sketch.PAPER)
 		draw_string(Sketch.font(), c + Vector2(-w * 0.5, PSWAP_RADIUS + 22.0), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22, Sketch.INK)
 
-## กรอบนอกของตารางช่องสกิลกับ HYPER ให้เห็นเป็นแผงเดียว
-func _draw_grid_frame() -> void:
-	if not buttons.has("s0") or not buttons.has("hyper"):
-		return
-	var a: Vector2 = cell_rect("s0").position
-	var b: Vector2 = cell_rect("s7").end
-	UiStyle.frame(self, Rect2(a, b - a), 990, RING, Sketch.INK, 10.0)
-	UiStyle.frame(self, cell_rect("hyper"), 991, RING, Sketch.INK, 10.0)
-
 ## ช่องสกิล ไอคอนเต็มช่อง ไม่มีชื่อ เลเวลไม่ถึงขึ้น Lv ทับ ติดคูลดาวน์ขึ้นวินาทีทับ
 func _draw_slot(i: int, c: Vector2) -> void:
 	var sid: String = slot_ids[i]
@@ -291,7 +304,7 @@ func _draw_slot(i: int, c: Vector2) -> void:
 		return
 	var cool: float = slot_cooldowns[i]
 	var locked_slot: bool = ("s%d" % i) in locked
-	SkillIcon.draw(self, c, CELL - 10.0, sid, locked_slot or cool > 0.0)
+	SkillIcon.draw(self, c, CELL - 8.0, sid, locked_slot or cool > 0.0)
 	var text := ""
 	if cool > 0.0:
 		text = str(ceili(cool))

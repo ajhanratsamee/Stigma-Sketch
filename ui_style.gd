@@ -20,6 +20,18 @@ const BODY := 22                             # ข้อความทั่ว
 const SMALL := 19                            # ข้อความรอง ห้ามเล็กกว่านี้
 
 ## จุดรอบกล่องมุมโค้ง ปิดรูปแล้ว (จุดแรกซ้ำที่ท้าย)
+## ระยะเว้นขอบซ้ายขวา (หน่วยจอเกม) กันรูกล้องหน้าจอเจาะรู / ขอบโค้ง บนมือถือ  เดสก์ท็อปคืน 0
+static func safe_side() -> float:
+	if not OS.has_feature("mobile") and not OS.has_feature("web_android") and not OS.has_feature("web_ios"):
+		return 0.0
+	var win := DisplayServer.window_get_size()
+	var scr := DisplayServer.screen_get_size()
+	var safe := DisplayServer.get_display_safe_area()
+	if win.y <= 0 or safe.size.x <= 0:
+		return 0.0
+	var inset := float(maxi(safe.position.x, scr.x - safe.end.x))
+	return clampf(inset * 720.0 / float(win.y), 0.0, 110.0)
+
 static func round_pts(r: Rect2, radius := RADIUS) -> PackedVector2Array:
 	var rad := minf(radius, minf(r.size.x, r.size.y) * 0.5)
 	var pts := PackedVector2Array()

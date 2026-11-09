@@ -60,10 +60,15 @@ func _ready() -> void:
 	hero.pos.x = -half + 2.0
 	Hero.platforms = room_data.get("platforms", []).duplicate()
 	var theme := str(data.get("theme", "meadow"))
-	var painters := [[0.0, _paint_sky.bind(theme)], [0.12, _paint_far.bind(theme)], [0.4, _paint_mid.bind(theme)], [1.0, _paint_ground.bind(theme)]]
+	var painters := [[0.0, _paint_sky.bind(theme)], [PAR_FAR, _paint_far.bind(theme)], [PAR_MID, _paint_mid.bind(theme)], [1.0, _paint_ground.bind(theme)]]
 	for i in painters.size():
 		var node := _layer(float(painters[i][0]), painters[i][1])
 		move_child(node, i)
+	# ชั้นหน้าสุด พุ่มไม้ ก้อนหิน สาหร่าย กระดาษตัดชิดขอบล่างจอ เลื่อนเร็วกว่าพื้น (ฉากในอาคารไม่มี)
+	var tkind := ForeTufts.kind_for_theme(theme)
+	if tkind != "":
+		var tufts := _layer(ForeTufts.FACTOR, func(c: Node2D) -> void: ForeTufts.paint(c, tkind, _span(ForeTufts.FACTOR), _view.y, _rng))
+		move_child(tufts, world.get_index() + 1)
 	# ฉากพิเศษที่ขยับได้ (รถไฟวิ่ง ใต้ทะเล ฯลฯ) วาดทุกเฟรม อยู่หน้าฉากกลาง หลังพื้น
 	Hero.gravity_k = DungeonLook.gravity_k(theme)
 	if DungeonLook.has_anim(theme):
@@ -537,6 +542,10 @@ func _draw_hud() -> void:
 func _ground_y() -> float:
 	return _view.y * GROUND_AT
 
+# ตัวคูณพารัลแลกซ์ ฉากไกลเลื่อนช้า ฉากกลางเร็วขึ้น ให้เห็นมิติลึกชัด
+const PAR_FAR := 0.22
+const PAR_MID := 0.55
+
 func _span(factor: float) -> float:
 	return half * CombatData.UNIT * ZOOM * factor + _view.x
 
@@ -599,10 +608,10 @@ func _paint_sky(c: Node2D, theme: String) -> void:
 
 func _paint_far(c: Node2D, theme: String) -> void:
 	if DungeonLook.has(theme):
-		DungeonLook.far(c, theme, _ground_y(), _span(0.12), _rng)
+		DungeonLook.far(c, theme, _ground_y(), _span(PAR_FAR), _rng)
 		return
 	var g := _ground_y()
-	var span := _span(0.12)
+	var span := _span(PAR_FAR)
 	match theme:
 		"meadow":
 			# กำแพงเมืองไกลๆ กับเนินเขา
@@ -646,10 +655,10 @@ func _paint_far(c: Node2D, theme: String) -> void:
 
 func _paint_mid(c: Node2D, theme: String) -> void:
 	if DungeonLook.has(theme):
-		DungeonLook.mid(c, theme, _ground_y(), _span(0.4), _rng)
+		DungeonLook.mid(c, theme, _ground_y(), _span(PAR_MID), _rng)
 		return
 	var g := _ground_y()
-	var span := _span(0.4)
+	var span := _span(PAR_MID)
 	var x := -span
 	match theme:
 		"meadow":

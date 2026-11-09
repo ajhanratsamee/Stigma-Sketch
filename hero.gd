@@ -783,6 +783,11 @@ var pierce_ahead: Array = []
 var already_hit: Array = []
 var lunge_v := 0.0
 var hurt_t := 0.0
+# สีหน้า: cheer_t ยิ้ม ^_^ (ตั้งเองตอนเลเวลอัป)  face_kind/face_t บังคับสีหน้าชั่วครู่ show_face()
+var cheer_t := 0.0
+var face_kind := ""
+var face_t := 0.0
+static var _level_ring_script: Variant = null
 var flash_t := 0.0              # โดนตี ตัวขาววาบ
 # สกิล CAT SUSI ตั้งค่าเหล่านี้ทุกเฟรม
 var mp_bonus := 0.0             # MP สูงสุดเพิ่ม
@@ -815,6 +820,29 @@ func _ready() -> void:
 	add_to_group("hero")
 	z_index = 5   # ตัวละครและดาบอยู่หน้ามอนและเอฟเฟกเสมอ
 	_place()
+	# วงแสงเลเวลอัปโผล่ข้างตัว แมวยิ้ม ^_^ แป๊บหนึ่ง
+	if get_parent() != null:
+		get_parent().child_entered_tree.connect(_on_world_child)
+
+func _on_world_child(node: Node) -> void:
+	if _level_ring_script == null:
+		var wp = load("res://walk_page.gd")
+		_level_ring_script = wp.LevelUpRing if wp != null else false
+	if _level_ring_script is Script and node.get_script() == _level_ring_script:
+		cheer_t = 1.8
+
+## ตั้งสีหน้าชั่วครู่ kind: big fierce squint dizzy ko happy shut idle
+func show_face(kind: String, t: float) -> void:
+	face_kind = kind
+	face_t = t
+
+## อยู่ระหว่าง HYPER ของหน้าที่เล่นอยู่
+func in_hyper() -> bool:
+	var scene := get_tree().current_scene if is_inside_tree() else null
+	if scene == null:
+		return false
+	var h = scene.get("hyper")
+	return h is Object and is_instance_valid(h)
 
 ## ตัว BOYS ลอยค้างแป๊บหนึ่งที่จุดสูงสุด และตกหนักกว่าตอนขึ้น
 func _plain_gravity() -> float:
@@ -1658,6 +1686,8 @@ func _physics_process(delta: float) -> void:
 
 	invuln_t -= delta
 	flash_t = maxf(flash_t - delta, 0.0)
+	cheer_t = maxf(cheer_t - delta, 0.0)
+	face_t = maxf(face_t - delta, 0.0)
 	if hurt_t > 0.0:
 		hurt_t -= delta
 		queued = ""

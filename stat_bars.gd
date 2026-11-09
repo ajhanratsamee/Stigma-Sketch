@@ -48,6 +48,8 @@ var guide: GuideHud
 
 ## ตัวช่วยผู้เล่นใหม่ (เป้าหมาย ลูกศรชี้ทาง คำใบ้ครั้งแรก) ติดไปกับหน้าที่มีแถบเลือด
 func _ready() -> void:
+	# เลื่อนการ์ดเลือดพ้นรูกล้อง / ขอบโค้ง
+	position.x = UiStyle.safe_side()
 	var p := get_parent()
 	if p != null and not p.is_node_ready():
 		p.ready.connect(_add_guide, CONNECT_ONE_SHOT)

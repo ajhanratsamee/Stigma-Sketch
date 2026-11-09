@@ -12,6 +12,10 @@ boot_splash/use_filter=true
 boot_splash/bg_color=Color(0.968, 0.949, 0.91, 1)
 config/icon="res://icon_cat.png"
 
+[autoload]
+
+WebFullscreen="*res://web_fullscreen.gd"
+
 [display]
 
 window/size/viewport_width=1280

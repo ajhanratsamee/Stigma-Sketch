@@ -70,6 +70,8 @@ static func skill_mp(weapon: String, id: String) -> float:
 		return float(BowSkills.BOW_MP[id])
 	if PairSkills.PAIR_MP.has(id):
 		return float(PairSkills.PAIR_MP[id])
+	if PairSkillsPlus.MORE_MP.has(id):
+		return float(PairSkillsPlus.MORE_MP[id])
 	var tag := str(info.get("level", str(info.get("name", "")).get_slice(" ", 0)))
 	var t := QuestData.tier(weapon, str(info.get("class", "BASIC")))
 	var key := "cat" if weapon == "spear" or weapon == "azure" or weapon == "fist" else weapon

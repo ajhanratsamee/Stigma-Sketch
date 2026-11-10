@@ -60,7 +60,21 @@ func _ready() -> void:
 
 func _add_guide() -> void:
 	var page := get_parent() as WalkPage
-	if page == null or not GuideHud.wanted():
+	if page == null:
+		return
+	# สัตว์ตัวเล็กในฉาก (อยู่ในโลก หลังตัวละคร) กับตัวนับคอมโบ
+	if page.world != null and not (page is TownPage and (page as TownPage).style == "curve"):
+		var critters := AmbientCritters.new()
+		critters.page = page
+		critters.kind = AmbientCritters.kind_for(page)
+		page.world.add_child(critters)
+		page.world.move_child(critters, 0)
+		page.set_meta("critters", critters)
+	if not (page is TownPage):
+		var combo := ComboCounter.new()
+		combo.page = page
+		page.add_child(combo)
+	if not GuideHud.wanted():
 		return
 	guide = GuideHud.new()
 	guide.page = page

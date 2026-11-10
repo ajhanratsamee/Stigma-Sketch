@@ -79,7 +79,7 @@ func _process(delta: float) -> void:
 		_end_t -= delta
 		if _end_t <= 0.0:
 			set_process(false)
-			get_tree().change_scene_to_file("res://town.tscn")
+			IrisFx.go("res://town.tscn")
 		queue_redraw()
 		return
 	if page.hero.hp <= 0.0:

@@ -62,6 +62,34 @@ func open() -> void:
 	_make_previews()
 	queue_redraw()
 
+## ดันทั้งหมดบนแผนที่: ดันปกติตามลำดับ แล้วดันพิเศษ (ฟาร์ม) ของเมือง
+func _indices() -> Array:
+	var out := []
+	for i in DungeonData.dungeon_count(town):
+		out.append(i)
+	out.append(DungeonData.SPECIAL)
+	return out
+
+## ป้ายแรงก์ดีที่สุดเล็กๆ มุมล่างซ้ายของจุดดัน
+func _rank_pill(c: Vector2, grade: String) -> void:
+	if grade == "":
+		return
+	var col: Color = RankCard.GRADE_COL.get(grade, UiStyle.SOFT_ACCENT)
+	var w := 30.0 + 12.0 * float(grade.length())
+	UiStyle.fill(self, Rect2(c - Vector2(w * 0.5, 15.0), Vector2(w, 30.0)), Color(1.0, 0.99, 0.97), 15.0)
+	UiStyle.frame(self, Rect2(c - Vector2(w * 0.5, 15.0), Vector2(w, 30.0)), 870, 2.2, col, 15.0)
+	_text(c, grade, 20, col.darkened(0.2))
+
+## ข้อความรอบที่เหลือของดันนี้ "" ถ้าไม่จำกัด
+func _limit_note(i: int) -> String:
+	var kind := DungeonRank.limited(town, i)
+	if kind == "" or WalkPage.roster_index < 0:
+		return ""
+	var n := DungeonRank.left(town, i)
+	if kind == "day":
+		return "เข้าได้วันนี้ %d/%d" % [n, DungeonRank.SPECIAL_PER_DAY]
+	return "รอบเรดสัปดาห์นี้ %d/%d" % [n, DungeonRank.RAID_PER_WEEK]
+
 func panel_rect() -> Rect2:
 	return Rect2((_view - PANEL) * 0.5, PANEL)
 
@@ -127,7 +155,7 @@ func travel(to: int) -> void:
 	WalkPage.current_town = to
 	if WalkPage.roster_index >= 0:
 		SaveData.update_character(WalkPage.roster_index, {"town": to})
-	get_tree().change_scene_to_file("res://town.tscn")
+	IrisFx.go("res://town.tscn")
 
 func tap(at: Vector2) -> void:
 	if at.distance_to(close_center()) <= 36.0:
@@ -145,14 +173,19 @@ func tap(at: Vector2) -> void:
 			_denied_t = 1.2
 			queue_redraw()
 			return
+		# ดันพิเศษ / เรดที่ผ่านแล้ว ใช้รอบ หมดรอบเข้าไม่ได้
+		if not DungeonRank.use_entry(town, selected):
+			_denied_t = 1.4
+			queue_redraw()
+			return
 		WalkPage.dungeon_town = town
 		WalkPage.dungeon_index = selected
 		WalkPage.trial = false
 		WalkPage.return_to = "res://town.tscn"
 		DungeonPage.stage = 0
-		get_tree().change_scene_to_file("res://dungeon.tscn")
+		IrisFx.go("res://dungeon.tscn")
 		return
-	for i in DungeonData.dungeon_count(town):
+	for i in _indices():
 		if DungeonData.dungeon(town, i).is_empty():
 			continue
 		if at.distance_to(node_at(i)) <= NODE_R * 1.25:
@@ -355,7 +388,7 @@ func _draw() -> void:
 		river.append(mr.position + Vector2(mr.size.x * (0.2 + 0.6 * t), mr.size.y * t + sin(t * 9.0) * 26.0))
 	draw_polyline(river, Color(0.55, 0.75, 0.92), 16.0, true)
 	draw_polyline(river, Color(0.75, 0.88, 0.98), 6.0, true)
-	for i in DungeonData.dungeon_count(town):
+	for i in _indices():
 		var d0 := DungeonData.dungeon(town, i)
 		if not d0.is_empty():
 			_scenery(node_at(i), str(d0.get("theme", "")))
@@ -380,19 +413,28 @@ func _draw() -> void:
 			continue
 		_dotted(node_at(i), node_at(i + 1))
 	_dotted(a + Vector2(74.0, PANEL.y - 80.0), node_at(0))
-	for i in count:
+	var entry: Dictionary = SaveData.roster()[WalkPage.roster_index] if WalkPage.roster_index >= 0 and WalkPage.roster_index < SaveData.roster().size() else {}
+	for i in _indices():
 		var d := DungeonData.dungeon(town, i)
 		if d.is_empty():
 			continue
 		var c := node_at(i)
+		var sp := DungeonData.is_special(i)
 		draw_circle(c, NODE_R + 6.0, Color(0.85, 0.3, 0.25) if i == selected else PARCH_DARK)
 		draw_circle(c, NODE_R, Color(1.0, 0.97, 0.88))
 		var ring := Sketch.oval(c, NODE_R, NODE_R, 30)
 		ring.append(ring[0])
 		Sketch.line(self, ring, 810 + i, 5.0 if i == selected else 2.6, Sketch.WOBBLE, INK)
 		_icon(c, d.get("icon", ""))
-		draw_circle(c + Vector2(-NODE_R * 0.75, -NODE_R * 0.75), 15.0, Color(0.38, 0.5, 0.8))
-		_text(c + Vector2(-NODE_R * 0.75, -NODE_R * 0.75), str(i + 1), 18, Color.WHITE)
+		if sp:
+			# ดันพิเศษ วงชมพูฝุ่นรอบนอก ป้าย "ดันพิเศษ"
+			draw_arc(c, NODE_R + 10.0, 0.0, TAU, 40, UiStyle.SOFT_ACCENT, 3.0, true)
+			UiStyle.fill(self, Rect2(c + Vector2(-48.0, -NODE_R - 30.0), Vector2(96.0, 26.0)), UiStyle.SOFT_PRIMARY, 13.0)
+			_text(c + Vector2(0.0, -NODE_R - 17.0), "ดันพิเศษ", 19, UiStyle.SOFT_TEXT)
+		else:
+			draw_circle(c + Vector2(-NODE_R * 0.75, -NODE_R * 0.75), 15.0, Color(0.38, 0.5, 0.8))
+			_text(c + Vector2(-NODE_R * 0.75, -NODE_R * 0.75), str(i + 1), 18, Color.WHITE)
+		_rank_pill(c + Vector2(-NODE_R * 0.85, NODE_R * 0.7), DungeonRank.best(town, i, entry) if not entry.is_empty() else "")
 		if i in done:
 			_paw_badge(c + Vector2(NODE_R * 0.8, -NODE_R * 0.8), 16.0)
 		_text(c + Vector2(0.0, NODE_R + 24.0), d.get("name", ""), 20)
@@ -405,13 +447,20 @@ func _draw() -> void:
 	# รายละเอียดดันเจี้ยนที่เลือก
 	var sd := DungeonData.dungeon(town, selected)
 	var x0 := a.x + MAP_W + 30.0
-	_text(Vector2(x0, a.y + 110.0), "%d. %s" % [selected + 1, sd.get("name", "")], 30, INK, false)
+	_text(Vector2(x0, a.y + 110.0), ("ดันพิเศษ · %s" % sd.get("name", "")) if DungeonData.is_special(selected) else "%d. %s" % [selected + 1, sd.get("name", "")], 30, INK, false)
 	Sketch.draw_wrapped(self, Vector2(x0, a.y + 140.0), sd.get("text", ""), 22, PANEL.x - MAP_W - 60.0, 70.0, INK)
 	var total := 0
 	for st in DungeonData.stage_count(town, selected) - 1:
 		total += DungeonData.stage_monsters(town, selected, st).size()
 	_text(Vector2(x0, a.y + 235.0), "%d ห้อง + ห้องบอส   มอนรวม %d ตัว" % [DungeonData.stage_count(town, selected) - 1, total], 20, INK, false)
-	_text(Vector2(x0, a.y + 280.0), "มอนที่เจอ", 22, INK, false)
+	# แรงก์ดีที่สุด กับรอบที่เหลือ (ดันพิเศษ/เรด)
+	var best := DungeonRank.best(town, selected) if WalkPage.roster_index >= 0 else ""
+	var note := ("แรงก์ดีสุด %s" % best if best != "" else "ยังไม่มีแรงก์")
+	var lim := _limit_note(selected)
+	if lim != "":
+		note += "     " + lim
+	_text(Vector2(x0, a.y + 258.0), note, 19, UiStyle.SOFT_ACCENT.darkened(0.25), false)
+	_text(Vector2(x0, a.y + 288.0), "มอนที่เจอ", 22, INK, false)
 	var info_mid := x0 + (PANEL.x - MAP_W - 80.0) * 0.5
 	_text(Vector2(info_mid, a.y + 420.0), "บอส  " + CatLook.name_of(str(sd.get("boss", "")), town), 22, Color(0.75, 0.2, 0.2))
 	if selected in done:
@@ -419,13 +468,15 @@ func _draw() -> void:
 		_text(Vector2(x0 + 32.0, a.y + 200.0), "ผ่านแล้ว", 20, Color(0.85, 0.6, 0.1), false)
 	var need := DungeonData.dungeon_level(town, selected)
 	var enter_ok := DungeonData.can_enter(town, selected, WalkPage.chosen_level)
+	var out_of := DungeonRank.limited(town, selected) != "" and WalkPage.roster_index >= 0 and DungeonRank.left(town, selected) <= 0
 	_text(Vector2(x0 + 200.0, a.y + 200.0), "ต้องเลเวล %d ขึ้นไป  (ตอนนี้ Lv.%d)" % [need, WalkPage.chosen_level], 20, Color(0.25, 0.5, 0.3) if enter_ok else Color(0.8, 0.2, 0.2), false)
 	var g := go_rect()
-	draw_rect(g, Color(0.85, 0.3, 0.25) if enter_ok else Color(0.6, 0.56, 0.54))
+	draw_rect(g, Color(0.85, 0.3, 0.25) if enter_ok and not out_of else Color(0.6, 0.56, 0.54))
 	Sketch.line(self, PackedVector2Array([g.position, Vector2(g.end.x, g.position.y), g.end, Vector2(g.position.x, g.end.y), g.position]), 830, 4.0, Sketch.WOBBLE, INK)
-	_text(g.get_center(), "เข้าดันเจี้ยน" if enter_ok else "เลเวลไม่ถึง Lv.%d" % need, 32, Color(1.0, 0.97, 0.9))
+	_text(g.get_center(), ("หมดรอบแล้ว" if out_of else "เข้าดันเจี้ยน") if enter_ok else "เลเวลไม่ถึง Lv.%d" % need, 32, Color(1.0, 0.97, 0.9))
 	if _denied_t > 0.0:
-		_text(g.get_center() + Vector2(0.0, -g.size.y * 0.5 - 26.0), "ต้องเลเวล %d ก่อนนะเหมียว!" % need, 24, Color(0.8, 0.2, 0.2))
+		var why := ("ดันพิเศษเข้าได้อีกพรุ่งนี้นะเหมียว" if DungeonRank.limited(town, selected) == "day" else "เรดรอบใหม่เริ่มวันจันทร์นะเหมียว") if enter_ok else "ต้องเลเวล %d ก่อนนะเหมียว!" % need
+		_text(g.get_center() + Vector2(0.0, -g.size.y * 0.5 - 26.0), why, 24, Color(0.8, 0.2, 0.2))
 	# ปุ่มปิด
 	var cc := close_center()
 	draw_circle(cc, 28.0, Color(1.0, 0.97, 0.88))

@@ -127,14 +127,14 @@ const SKILLS := {
 		{"id": "pr_sk_sd_yawn", "class": "SPARK DREAMER", "name": "25.2 Big Yawn", "text": "หาวกว้างไปด้านหน้า มอนชะงัก ได้มานาคืนตามจำนวนมอนที่โดน", "slot": "หาวใหญ่"},
 		{"id": "pr_sk_sd_drift", "class": "SPARK DREAMER", "name": "30.1 Sleepwalk Drift", "text": "หลับตาลอยไปข้างหน้าช้าๆ ไม่โดนดาเมจ ชนมอนแล้วผลักและทำดาเมจ ใช้กลางอากาศได้", "slot": "ละเมอลอย"},
 		{"id": "pr_sk_sd_rain", "class": "SPARK DREAMER", "name": "30.2 Spark Dream Rain", "text": "ฝนประกายเม็ดกลมตกด้านหน้า 2 วินาที", "slot": "ฝนประกาย"},
-		{"id": "pr_sk_sd_blanket", "class": "SPARK DREAMER", "name": "35.1 Snuggle Blanket", "text": "ปูผ้าห่มฝันบนพื้น มอนในผ้าห่มช้าลงและโดนดาเมจ ตัวเองยืนบนผ้าห่มมานาฟื้น", "slot": "ผ้าห่มฝัน"},
+		{"id": "pr_sk_sd_awaken", "class": "SPARK DREAMER", "name": "35.1 Azure Raw Awakening", "text": "AZURE แปลงร่างพลังดิบ 18 วิ ได้สกิลใหม่ 4 อย่าง (ประกายไล่ล่า บอลวงโคจร บอลพลังแตกไล่ล่า ฝนไล่ล่า) คอมโบเปลี่ยนเป็นท่าพลังดิบ สลับตัวไม่ได้", "slot": "แปลงร่าง"},
 		{"id": "pr_sk_sd_dream", "class": "SPARK DREAMER", "passive": true, "name": "40.1 Sweet Dreams", "text": "ติดตัว มอนที่สตั๊นอยู่โดนดาเมจแรงขึ้น 25%", "slot": ""},
 		{"id": "pr_sk_so_walk", "class": "SOMNAMBULIST", "name": "35.2 Sleepwalker Combo", "text": "ละเมอเดินไปหน้าแล้วตีอัตโนมัติ 6 ที สลับตัวกันตีระหว่างทาง ฮิตสุดท้ายมอนล้ม", "slot": "ละเมอตี"},
 		{"id": "pr_sk_so_door", "class": "SOMNAMBULIST", "name": "35.3 Dream Door", "text": "เปิดประตูฝันกลมด้านหน้า ดูดมอนเข้าไป แล้วพ่นออกมามอนลอย", "slot": "ประตูฝัน"},
 		{"id": "pr_sk_so_sleepguard", "class": "SOMNAMBULIST", "passive": true, "name": "35.4 Sleep Guard", "text": "ติดตัว เลือดต่ำกว่า 40% โดนตีแล้วหลับไป 1 วินาที ไม่โดนดาเมจ ฟื้นเลือด 15% (คูลดาวน์ 30 วิ)", "slot": ""},
 		{"id": "pr_sk_so_pillows", "class": "SOMNAMBULIST", "name": "45.1 Pillow Storm", "text": "หมอน 6 ใบตกลงมาทั่วด้านหน้าทีละใบ มอนล้ม", "slot": "พายุหมอน"},
 		{"id": "pr_sk_so_twin", "class": "SOMNAMBULIST", "name": "45.2 Dream Twin", "text": "เรียกร่างฝันโปร่งใสของคู่หูมาช่วยตี 6 วินาที ไล่ตีมอนที่ใกล้ที่สุด", "slot": "ร่างฝัน"},
-		{"id": "pr_sk_so_snore", "class": "SOMNAMBULIST", "name": "50.1 Snore Wave", "text": "กรนเป็นคลื่นวงกลม 3 ระลอก ผลักมอนออกและทำดาเมจ", "slot": "คลื่นกรน"},
+		{"id": "pr_sk_so_awaken", "class": "SOMNAMBULIST", "name": "50.1 Lapis Raw Awakening", "text": "LAPIS แปลงร่างพลังดิบ 18 วิ ดาบแสงยาว ได้สกิลใหม่ 4 อย่าง (ฟันรัว แทงยาว ฟันกากบาท พายุดาบ) คอมโบเปลี่ยนเป็นฟันรัวแรงเร็ว สลับตัวไม่ได้", "slot": "แปลงร่าง"},
 		{"id": "pr_sk_so_float", "class": "SOMNAMBULIST", "name": "50.2 Bed Float", "text": "ยกมอนด้านหน้าลอยขึ้นเหมือนนอนบนเตียง แล้วทิ้งลงพื้น ใช้กลางอากาศได้", "slot": "เตียงลอย"},
 		{"id": "pr_sk_so_nightmare", "class": "SOMNAMBULIST", "name": "55.1 Sweet Nightmare", "text": "ฟองฝันน้ำเงินเข้มครอบด้านหน้า ทำดาเมจต่อเนื่อง ปิดท้ายระเบิดมอนล้ม", "slot": "ฝันหวาน"},
 		{"id": "pr_sk_so_deep", "class": "SOMNAMBULIST", "passive": true, "name": "60.1 Deep Sleep", "text": "ติดตัว สตั๊นนานขึ้น 50% MP สูงสุด +100", "slot": ""},
@@ -159,8 +159,50 @@ const SKILLS := {
 		{"id": "pr_sk_nb_overdrive", "class": "NEON BOLT", "name": "55.1 Overdrive", "text": "โหมดนีออน 6 วินาที ปุ่ม V ไม่มีคูลดาวน์ สลับตัวทุกครั้งระเบิดนีออน", "slot": "โอเวอร์ไดรฟ์"},
 		{"id": "pr_sk_nb_soul", "class": "NEON BOLT", "passive": true, "name": "60.1 Neon Soul", "text": "ติดตัว โจมตีแรงขึ้น 20%", "slot": ""},
 		{"id": "pr_sk_nb_trail", "class": "NEON BOLT", "passive": true, "name": "60.2 Afterspark", "text": "ติดตัว สลับตัวแล้วทิ้งวงนีออนทำดาเมจรอบตัว", "slot": ""},
+		{"id": "pr_sk_tt_beat", "class": "TWIN TEMPO", "name": "15.2 Double Beat", "text": "คู่หูโผล่ข้างตัว ทั้งคู่ต่อยจุดเดียวกันพร้อมกัน 2 จังหวะ", "slot": "จังหวะคู่"},
+		{"id": "pr_sk_tt_scissor", "class": "TWIN TEMPO", "name": "15.3 Scissor Swipe", "text": "คู่หูไปยืนอีกฝั่ง ทั้งคู่ปาดสวนกันเข้าหากลาง ดึงมอนมารวมตรงกลาง", "slot": "กรรไกรคู่"},
+		{"id": "pr_sk_tt_rhythm", "class": "TWIN TEMPO", "passive": true, "name": "15.4 Rhythm Sense", "text": "ติดตัว ตีคอมโบโดนครบ 4 ที คู่หูโผล่มาตีตามอีก 1 ที", "slot": ""},
+		{"id": "pr_sk_tt_pass", "class": "TWIN TEMPO", "name": "20.4 Ball Pass", "text": "ส่งลูกพลังให้คู่หูด้านหน้า คู่หูตีกลับทะลุมอน 2 รอบ", "slot": "ส่งบอล"},
+		{"id": "pr_sk_tt_bounce", "class": "TWIN TEMPO", "name": "25.1 Tandem Bounce", "text": "ทั้งคู่กระโดดกระทืบพื้นพร้อมกันคนละจุด มอนลอย", "slot": "กระทืบคู่"},
+		{"id": "pr_sk_tt_wheel", "class": "TWIN TEMPO", "name": "25.2 Twin Wheel", "text": "ยืนหลังชนหลังหมุนเป็นวงล้อ ตีรอบตัว 3 รอบ", "slot": "วงล้อคู่"},
+		{"id": "pr_sk_tt_chain", "class": "TWIN TEMPO", "name": "30.1 Echo Chain", "text": "5 วินาที ตีโดนทุกครั้ง คู่หูตีสะท้อนตามแรงครึ่งหนึ่ง", "slot": "เสียงสะท้อน"},
+		{"id": "pr_sk_tt_lift", "class": "TWIN TEMPO", "name": "30.2 Lift & Spike", "text": "คู่หูเสยมอนลอย แล้วตัวเองกระโดดตบลงพื้น ใช้กลางอากาศได้", "slot": "เสยตบ"},
+		{"id": "pr_sk_tt_march", "class": "TWIN TEMPO", "name": "35.1 Duo March", "text": "เดินหน้าพร้อมกันตีสลับคนละที 6 จังหวะ ฮิตสุดท้ายมอนล้ม", "slot": "เดินคู่"},
+		{"id": "pr_sk_tt_sync", "class": "TWIN TEMPO", "passive": true, "name": "40.1 Perfect Sync", "text": "ติดตัว สกิลที่ใช้ทั้งคู่ร่วมกันแรงขึ้น 20% MP สูงสุด +100", "slot": ""},
+		{"id": "pr_sk_hd_cross", "class": "HARMONY DUET", "name": "35.2 Crossfire Duet", "text": "ยืนสองฝั่ง ยิงลำแสงไขว้กันใส่มอนตรงกลาง ช็อตต่อเนื่อง", "slot": "ลำแสงไขว้"},
+		{"id": "pr_sk_hd_waltz", "class": "HARMONY DUET", "name": "35.3 Battle Waltz", "text": "จับมือหมุนตัวเต้นรำไปข้างหน้า ตี 6 ที ฮิตสุดท้ายมอนลอย", "slot": "วอลทซ์"},
+		{"id": "pr_sk_hd_cover", "class": "HARMONY DUET", "passive": true, "name": "35.4 Cover Me", "text": "ติดตัว โดนตีแล้วคู่หูโผล่มาสวนกลับ มอนล้ม (คูลดาวน์ 10 วิ)", "slot": ""},
+		{"id": "pr_sk_hd_tandem", "class": "HARMONY DUET", "name": "45.1 Tandem Storm", "text": "ผลัดกันพุ่งตีมอนที่ใกล้ที่สุดรัว 8 ที", "slot": "พายุคู่"},
+		{"id": "pr_sk_hd_pillar", "class": "HARMONY DUET", "name": "45.2 Twin Pillars", "text": "เสาแสง 2 ต้นซ้ายขวา ดูดมอนเข้ากลางแล้วระเบิด", "slot": "เสาคู่"},
+		{"id": "pr_sk_hd_finale", "class": "HARMONY DUET", "name": "50.1 Grand Finale", "text": "ทั้งคู่กระโดดสูงแล้วดิ่งลงพร้อมกัน แรงกระแทกวงกว้าง มอนล้ม", "slot": "ฟินาเล่"},
+		{"id": "pr_sk_hd_mirror", "class": "HARMONY DUET", "name": "50.2 Mirror Step", "text": "6 วินาที คู่หูเป็นเงาสะท้อนตีคอมโบตามทุกท่า", "slot": "เงาสะท้อน"},
+		{"id": "pr_sk_hd_chorus", "class": "HARMONY DUET", "name": "55.1 Chorus Burst", "text": "ร้องประสานเสียง คลื่นวงกลมขยาย 3 ระลอก ระลอกสุดท้ายมอนลอย", "slot": "ประสานเสียง"},
+		{"id": "pr_sk_hd_bond", "class": "HARMONY DUET", "passive": true, "name": "60.1 Unbreakable Bond", "text": "ติดตัว โจมตีแรงขึ้น 10% เลือดสูงสุด +15%", "slot": ""},
+		{"id": "pr_sk_hd_encore", "class": "HARMONY DUET", "passive": true, "name": "60.2 Encore", "text": "ติดตัว ใช้สกิลแล้วมีโอกาส 15% คูลดาวน์รีเซ็ตทันที", "slot": ""},
+		{"id": "pr_sk_ps_id", "class": "PSYCHE PAW", "name": "15.2 Id Pounce", "text": "สัญชาตญาณดิบ กระโจนข่วนรัว 3 ที (เกจเอียงไปทาง ID)", "slot": "กระโจนดิบ"},
+		{"id": "pr_sk_ps_ego", "class": "PSYCHE PAW", "name": "15.3 Ego Shield", "text": "ตั้งสติ กันดาเมจทั้งใกล้และไกล 2 วินาที (เกจเอียงไปทาง EGO)", "slot": "โล่สติ"},
+		{"id": "pr_sk_ps_instinct", "class": "PSYCHE PAW", "passive": true, "name": "15.4 Raw Instinct", "text": "ติดตัว เกจเอียงทาง ID มาก โจมตีแรงขึ้น 15%", "slot": ""},
+		{"id": "pr_sk_ps_roar", "class": "PSYCHE PAW", "name": "20.4 Primal Roar", "text": "คำรามรอบตัว มอนชะงักและกระเด็น (ID)", "slot": "คำรามดิบ"},
+		{"id": "pr_sk_ps_focus", "class": "PSYCHE PAW", "name": "25.1 Ego Focus", "text": "สงบใจ ฟื้นเลือด 5% สกิล 3 ครั้งถัดไปใช้มานาลด 30% (EGO)", "slot": "สมาธิ"},
+		{"id": "pr_sk_ps_split", "class": "PSYCHE PAW", "name": "25.2 Psyche Split", "text": "ปล่อยเศษจิต 2 ลูก ลูกชมพู ID ระเบิด ลูกฟ้า EGO ดึงมอนเข้า", "slot": "แยกจิต"},
+		{"id": "pr_sk_ps_frenzy", "class": "PSYCHE PAW", "name": "30.1 Id Frenzy", "text": "คลั่งข่วนรัว 6 ทีไปข้างหน้า (ID)", "slot": "คลั่งดิบ"},
+		{"id": "pr_sk_ps_redirect", "class": "PSYCHE PAW", "name": "30.2 Ego Redirect", "text": "ตั้งรับ 1.2 วินาที โดนตีแล้วไม่เสียเลือด สะท้อนคลื่นใส่มอน (EGO)", "slot": "สะท้อนสติ"},
+		{"id": "pr_sk_ps_balance", "class": "PSYCHE PAW", "name": "35.1 Balance Point", "text": "เกจกลางพอดี ฟื้นเลือด 12% และระเบิดวงใหญ่ ถ้าไม่ ดึงเกจเข้ากลางแล้วตีวงเล็ก", "slot": "จุดสมดุล"},
+		{"id": "pr_sk_ps_mind", "class": "PSYCHE PAW", "passive": true, "name": "40.1 Calm Mind", "text": "ติดตัว เกจเอียงทาง EGO มาก โดนดาเมจลดลง 15% MP สูงสุด +100", "slot": ""},
+		{"id": "pr_sk_ie_unleash", "class": "ID EGO SAGE", "name": "35.2 Id Unleashed", "text": "ปลดสัญชาตญาณ พุ่งข่วนผ่านมอน 3 ครั้ง (ID)", "slot": "ปลดดิบ"},
+		{"id": "pr_sk_ie_halo", "class": "ID EGO SAGE", "name": "35.3 Superego Halo", "text": "วงแสงเหนือหัว ยิงแสงใส่มอนใกล้สุด 5 ตัว (ดึงเกจเข้ากลาง)", "slot": "วงแสงจิต"},
+		{"id": "pr_sk_ie_dual", "class": "ID EGO SAGE", "passive": true, "name": "35.4 Dual Mind", "text": "ติดตัว เกจข้ามฝั่ง ID กับ EGO เกิดวงกระแทกรอบตัว", "slot": ""},
+		{"id": "pr_sk_ie_storm", "class": "ID EGO SAGE", "name": "45.1 Instinct Storm", "text": "หมุนข่วนเป็นพายุรอบตัว 1.5 วินาที (ID)", "slot": "พายุดิบ"},
+		{"id": "pr_sk_ie_wall", "class": "ID EGO SAGE", "name": "45.2 Ego Wall", "text": "กำแพงสติด้านหน้า ผลักมอนออกและทำดาเมจ 3 วินาที (EGO)", "slot": "กำแพงสติ"},
+		{"id": "pr_sk_ie_clash", "class": "ID EGO SAGE", "name": "50.1 Id vs Ego", "text": "ลูก ID กับลูก EGO พุ่งชนกันด้านหน้า ระเบิดมอนล้ม", "slot": "จิตปะทะ"},
+		{"id": "pr_sk_ie_lucid", "class": "ID EGO SAGE", "name": "50.2 Lucid Mind", "text": "เขตฝันรู้ตัว 4 วินาที มอนในเขตช้าลง ตัวเองเดินเร็วขึ้น", "slot": "ฝันรู้ตัว"},
+		{"id": "pr_sk_ie_core", "class": "ID EGO SAGE", "name": "55.1 Psyche Core", "text": "ใช้เกจทั้งหมด ฝั่ง ID ระเบิดแรงมาก ฝั่ง EGO ได้โล่และฟื้นเลือด แล้วเกจกลับกลาง", "slot": "แกนจิต"},
+		{"id": "pr_sk_ie_will", "class": "ID EGO SAGE", "passive": true, "name": "60.1 Iron Will", "text": "ติดตัว MP สูงสุด +100 โดนดาเมจลดลง 10%", "slot": ""},
+		{"id": "pr_sk_ie_flow", "class": "ID EGO SAGE", "passive": true, "name": "60.2 Mind Flow", "text": "ติดตัว สกิลขยับเกจแรงขึ้น เกจสุดฝั่งใดฝั่งหนึ่ง สกิลแรงขึ้น 20%", "slot": ""},
 		{"id": "cat_so_hyper", "class": "SOMNAMBULIST", "name": "65 HYPER", "text": "AZURE กระโดดวาร์ปเข้าประตูกลางจอ ประตูเปิด LAPIS ผายมือ แสงอวกาศดูดมอนเข้าประตู", "slot": "HYPER"},
 		{"id": "cat_nb_hyper", "class": "NEON BOLT", "name": "65 HYPER", "text": "ทั้งคู่เป็นเงาเส้นนีออนขาวน้ำเงิน LAPIS พุ่งทะลุจอ AZURE ฟันตามเส้นพุ่ง สลับพุ่งทั่วจอ", "slot": "HYPER"},
+		{"id": "cat_hd_hyper", "class": "HARMONY DUET", "name": "65 HYPER", "text": "ทั้งคู่ขึ้นเวที ผลัดกันพุ่งตีสลับซ้ายขวารัว แล้วจับมือหมุนปล่อยคลื่นวงกลมประสานทั่วจอ", "slot": "HYPER"},
+		{"id": "cat_ie_hyper", "class": "ID EGO SAGE", "name": "65 HYPER", "text": "จิต ID ชมพูกับ EGO ฟ้าแยกเป็นสองวงหมุนรอบตัว ปะทะกันกลางจอแล้วระเบิดเป็นวงสมดุล", "slot": "HYPER"},
 	],
 	# CAT ASH หมัดกับเท้า สกิลทุกสาย (ระบบ FistSkills id ขึ้นต้น fs_sk_)
 	"fist": [
@@ -514,8 +556,8 @@ const SPEAR_TIER2 := {"PETIT TIGER": ["FIERCE PROWLER"], "PETIT FANG": ["LUPINE 
 const SPEAR_STYLES := {"PETIT TIGER": "cat_spear_tiger", "FIERCE PROWLER": "cat_spear_prowler", "PETIT FANG": "cat_spear_fang", "LUPINE DIRE": "cat_spear_lupine", "PETIT VIXEN": "cat_spear_vixen", "PHANTOM VULPINE": "cat_spear_phantom", "PETIT SHELL": "cat_spear_shell", "GENBU TITAN": "cat_spear_genbu"}
 
 ## CAT AZURE / CAT LAPIS ตัวละครคู่ (ถุงมือกรงเล็บ / ดาบปลายปืน) 2 สาย
-const PAIR_NEXT := {"BASIC": ["SPARK DREAMER", "SPARK FIEND"]}
-const PAIR_TIER2 := {"SPARK DREAMER": ["SOMNAMBULIST"], "SPARK FIEND": ["NEON BOLT"]}
+const PAIR_NEXT := {"BASIC": ["SPARK DREAMER", "SPARK FIEND", "TWIN TEMPO", "PSYCHE PAW"]}
+const PAIR_TIER2 := {"SPARK DREAMER": ["SOMNAMBULIST"], "SPARK FIEND": ["NEON BOLT"], "TWIN TEMPO": ["HARMONY DUET"], "PSYCHE PAW": ["ID EGO SAGE"]}
 
 ## อีกตัวของคู่
 static func pair_partner(form: String) -> String:
@@ -541,7 +583,7 @@ static func _first_classes_raw(weapon_id: String) -> Array:
 		return PAIR_NEXT["BASIC"]
 	return CLASS_NEXT.get("BASIC", [])
 const ALL_CLASSES := ["BOYS", "SWORD KNIGHT", "WARLORD", "MAGIC KNIGHT", "MAGUS", "DARK KNIGHT", "ABYSS", "DIVINE KNIGHT", "GODHOOD"]
-const TAB_WIDTH := {"HEAVYWEIGHT": 210.0, "GRAND SUMO": 200.0, "ZEPHYR": 140.0, "KUNG FU": 150.0, "WAR MUAY": 170.0, "MUAY THAI": 170.0, "SYSTEMA GRAPPLER": 300.0, "SAMBO": 130.0, "SPARK DREAMER": 220.0, "SOMNAMBULIST": 230.0, "SPARK FIEND": 200.0, "NEON BOLT": 180.0, "PETIT TIGER": 190.0, "FIERCE PROWLER": 240.0, "PETIT FANG": 180.0, "LUPINE DIRE": 190.0, "PETIT VIXEN": 190.0, "PHANTOM VULPINE": 260.0, "PETIT SHELL": 190.0, "GENBU TITAN": 200.0, "WINDSTARKER": 200.0, "GALE TEMPEST": 210.0, "SNIPESTARKER": 210.0, "APEX SNIPER": 190.0, "MANASTARKER": 210.0, "ESSENCE WEAVER": 260.0, "TRAPSTARKER": 210.0, "TWILIGHT": 150.0, "BASIC": 100.0, "ARCH MAGE": 150.0, "BATTLE MAGE": 180.0, "DARK MAGE": 160.0, "ALCHEMIST MAGE": 225.0, "ELEMENT MASTER": 230.0, "DIMENSION CASTER": 255.0, "ECLIPSE": 125.0, "TRANSMUTATION MASTER": 320.0, "APPRENTICE": 170.0, "GRAND KNIGHT": 206.0, "FLAME KNIGHT": 200.0, "GUARDIAN KNIGHT": 236.0, "CRIMSON KNIGHT": 222.0, "SHIELD KNIGHT": 206.0, "BOYS": 92.0, "SWORD KNIGHT": 204.0, "WARLORD": 130.0, "MAGIC KNIGHT": 206.0, "MAGUS": 100.0, "DARK KNIGHT": 190.0, "ABYSS": 100.0, "DIVINE KNIGHT": 200.0, "GODHOOD": 130.0}
+const TAB_WIDTH := {"HEAVYWEIGHT": 210.0, "GRAND SUMO": 200.0, "ZEPHYR": 140.0, "KUNG FU": 150.0, "WAR MUAY": 170.0, "MUAY THAI": 170.0, "SYSTEMA GRAPPLER": 300.0, "SAMBO": 130.0, "SPARK DREAMER": 220.0, "SOMNAMBULIST": 230.0, "SPARK FIEND": 200.0, "NEON BOLT": 180.0, "TWIN TEMPO": 190.0, "HARMONY DUET": 220.0, "PSYCHE PAW": 190.0, "ID EGO SAGE": 200.0, "PETIT TIGER": 190.0, "FIERCE PROWLER": 240.0, "PETIT FANG": 180.0, "LUPINE DIRE": 190.0, "PETIT VIXEN": 190.0, "PHANTOM VULPINE": 260.0, "PETIT SHELL": 190.0, "GENBU TITAN": 200.0, "WINDSTARKER": 200.0, "GALE TEMPEST": 210.0, "SNIPESTARKER": 210.0, "APEX SNIPER": 190.0, "MANASTARKER": 210.0, "ESSENCE WEAVER": 260.0, "TRAPSTARKER": 210.0, "TWILIGHT": 150.0, "BASIC": 100.0, "ARCH MAGE": 150.0, "BATTLE MAGE": 180.0, "DARK MAGE": 160.0, "ALCHEMIST MAGE": 225.0, "ELEMENT MASTER": 230.0, "DIMENSION CASTER": 255.0, "ECLIPSE": 125.0, "TRANSMUTATION MASTER": 320.0, "APPRENTICE": 170.0, "GRAND KNIGHT": 206.0, "FLAME KNIGHT": 200.0, "GUARDIAN KNIGHT": 236.0, "CRIMSON KNIGHT": 222.0, "SHIELD KNIGHT": 206.0, "BOYS": 92.0, "SWORD KNIGHT": 204.0, "WARLORD": 130.0, "MAGIC KNIGHT": 206.0, "MAGUS": 100.0, "DARK KNIGHT": 190.0, "ABYSS": 100.0, "DIVINE KNIGHT": 200.0, "GODHOOD": 130.0}
 const TAB_Y := 86.0
 const TAB_H := 42.0
 const TAB_X := 340.0

@@ -99,6 +99,12 @@ func _ready() -> void:
 	_hud.draw.connect(_draw_hud)
 	add_child(_hud)
 	_spawn_stage.call_deferred()
+	# ท่าเปิดดัน (ห้องแรกเท่านั้น)
+	DungeonIntro.begin(self)
+	# คะแนนแรงก์ นับต่อเนื่องทุกห้องของรอบนี้ (ห้องแรกเริ่มนับใหม่)
+	if stage == 0:
+		DungeonRank.reset()
+	hero.hurt_by.connect(func(k: String) -> void: DungeonRank.on_hurt(k))
 	_follow(0.0)
 
 var _anim_layer: Node2D
@@ -216,15 +222,31 @@ func _on_died(m: Monster) -> void:
 			_spawn_mob_wave.call_deferred()
 			return
 		if is_boss_stage():
-			result = "win"
-			_end_t = END_WAIT
-			SaveData.mark_cleared(dungeon_town, dungeon_index)
-			gain_exp(LevelData.clear_exp(DungeonData.dungeon_level(dungeon_town, dungeon_index), chosen_level))
-			quest_count(dungeon_town, 0, dungeon_index)
+			_finish_win()
 		else:
 			_flash = "ประตูเปิดแล้ว ไปทางขวา"
 			_flash_t = 2.5
 		_gate.queue_redraw()
+
+## ผ่านดัน: ให้แรงก์ คูณ EXP เคลียร์ ให้เหรียญปลา/หินเสริมพลัง บันทึกแรงก์ดีสุด แล้วขึ้นการ์ดผล
+const WIN_WAIT := 6.5
+var _rank_card: RankCard
+
+func _finish_win() -> void:
+	result = "win"
+	_end_t = WIN_WAIT
+	SaveData.mark_cleared(dungeon_town, dungeon_index)
+	var info := DungeonRank.compute(dungeon_town, dungeon_index)
+	var base := LevelData.clear_exp(DungeonData.dungeon_level(dungeon_town, dungeon_index), chosen_level)
+	var got := DungeonRank.clear_exp(base, dungeon_town, dungeon_index, int(info["g"]))
+	gain_exp(got)
+	var nb := DungeonRank.save_best(dungeon_town, dungeon_index, str(info["grade"]))
+	quest_count(dungeon_town, 0, dungeon_index)
+	_rank_card = RankCard.new()
+	_rank_card.info = info
+	_rank_card.reward = {"exp": got, "base": base, "bonus": DungeonRank.exp_bonus(dungeon_town, dungeon_index)}
+	_rank_card.new_best = nb and roster_index >= 0
+	add_child(_rank_card)
 
 ## บอสค้อนทุบพื้น คลื่นวิ่งตามพื้นไปหาตัวละคร
 func _boss_wave(boss: Monster, dir: float) -> void:
@@ -358,6 +380,9 @@ func _process(delta: float) -> void:
 	if ui_paused():
 		return
 	super._process(delta)
+	if result == "" and hero != null:
+		DungeonRank.tick(delta)
+		DungeonRank.observe_combo(hero.combo_count)
 	_follow(delta)
 	_flash_t = maxf(_flash_t - delta, 0.0)
 	_ult_warn = maxf(_ult_warn - delta, 0.0)
@@ -371,15 +396,16 @@ func _process(delta: float) -> void:
 		if _end_t <= 0.0:
 			set_process(false)
 			stage = 0
-			get_tree().change_scene_to_file("res://town.tscn")
+			IrisFx.go("res://town.tscn")
 	elif hero.hp <= 0.0:
 		result = "lose"
+		DungeonIntro.DefeatPose.play(self)
 		_end_t = END_WAIT
 	elif not is_boss_stage() and alive == 0 and total > 0 and wave >= (room_data.get("waves", []) as Array).size() - 1 and hero.pos.x > half - 3.0:
 		# เข้าประตูไปด่านต่อไป
 		stage += 1
 		set_process(false)
-		get_tree().change_scene_to_file("res://dungeon.tscn")
+		IrisFx.go("res://dungeon.tscn")
 	_hud.queue_redraw()
 
 func _tick_mob_shots(delta: float) -> void:
@@ -581,7 +607,7 @@ func _draw_hud() -> void:
 	if _flash_t > 0.0 and result == "":
 		# ป้ายชื่อห้องเล็ก นุ่ม ใต้ชื่อดันด้านบน ไม่บังกลางจอ จางไว
 		_soft_flash(_flash, minf(_flash_t * 2.5, 1.0))
-	if result == "win":
+	if result == "win" and _rank_card == null:
 		_text(Vector2(_view.x * 0.5, _view.y * 0.34), "ผ่านดันเจี้ยน!", 72, Color(0.85, 0.55, 0.1))
 	elif result == "lose":
 		_text(Vector2(_view.x * 0.5, _view.y * 0.34), "พ่ายแพ้...", 72, Color(0.4, 0.4, 0.5))

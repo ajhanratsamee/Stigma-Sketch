@@ -149,6 +149,14 @@ var _flinch_t := 0.0
 var _hurt_t := 0.0             # เพิ่งโดนตี ตาเป็น >< และตัวสั่น
 var _flinch_dir := 1.0
 var _numbers: Array = []
+static var chain := 0              # ฮิตต่อเนื่องของผู้เล่น (ตัวนับคอมโบ)
+static var chain_ms := 0           # เวลาฮิตล่าสุด
+var _st_max := {}                  # สถานะ -> เวลาเต็มตอนเริ่ม ใช้วาดวงเวลาที่เหลือบนป้ายสถานะ
+const BADGE_R := 19.0              # ป้ายสถานะกลมๆ ข้างหลอดเลือด
+const BADGE_MAX := 3
+const NUM_INK := Color(0.4, 0.34, 0.31)
+const NUM_BIG := Color(0.93, 0.52, 0.42)
+const NUM_EDGE := Color(1.0, 0.98, 0.95)
 var ice_t := 0.0               # แช่แข็ง นิ่งทุกอย่าง เหลือกี่วินาที
 var weak_t := 0.0              # มอนอ่อนแรง โจมตีเบาลง เหลือกี่วินาที
 var mark_t := 0.0              # ตกเป็นเป้า เหลือกี่วินาที
@@ -241,6 +249,12 @@ func take_hit(h: Dictionary, dir: float) -> bool:
 	if state == "dead" or is_invulnerable():
 		return false
 	var t: String = h.get("type", "flinch")
+	# นับคอมโบ ฮิตห่างกันเกิน 1.5 วิเริ่มนับใหม่
+	var now_ms := Time.get_ticks_msec()
+	if now_ms - chain_ms > 1500:
+		chain = 0
+	chain += 1
+	chain_ms = now_ms
 	var heavy_hit := t == "launch" or t == "knockdown" or t == "slam" or float(h.get("dmg", 0.0)) >= 80.0
 	Snd.hit(heavy_hit)
 	if heavy_hit:
@@ -261,7 +275,7 @@ func take_hit(h: Dictionary, dir: float) -> bool:
 	if ROLES.get(role, {}).get("armor", false):
 		var hard := _scaled_damage(h)
 		hp -= hard
-		_numbers.append({"text": str(int(hard)), "t": 0.0, "x": randf_range(-20.0, 20.0)})
+		_numbers.append({"text": str(int(hard)), "t": 0.0, "x": randf_range(-20.0, 20.0), "big": heavy_hit or hard >= maxf(120.0, max_hp * 0.25)})
 		_flinch_t = FLINCH_TIME * 0.5
 		_flinch_dir = dir if dir != 0.0 else 1.0
 		_hurt_t = 0.25
@@ -286,7 +300,7 @@ func take_hit(h: Dictionary, dir: float) -> bool:
 		burn_t = BURN_TIME
 		_burn_tick = BURN_GAP
 	hp -= dmg
-	_numbers.append({"text": str(int(dmg)), "t": 0.0, "x": randf_range(-20.0, 20.0)})
+	_numbers.append({"text": str(int(dmg)), "t": 0.0, "x": randf_range(-20.0, 20.0), "big": heavy_hit or dmg >= maxf(120.0, max_hp * 0.25)})
 	var airborne := state == "air" or not on_floor()
 	if airborne:
 		air_hits += 1
@@ -1212,23 +1226,125 @@ func _draw_bar(y: float) -> void:
 	if hide_bars:
 		return
 	var left := -BAR_W * 0.5
-	# เกราะแตก มีเครื่องหมายร้าวข้างแถบเลือด
-	if armor_t > 0.0:
-		var at := Vector2(-BAR_W * 0.5 - 15.0, y - 6.0)
-		Sketch.line(self, PackedVector2Array([at, at + Vector2(6.0, 6.0), at + Vector2(-3.0, 10.0), at + Vector2(4.0, 18.0)]), 97, 2.6, 0.2, ARMOR_MARK)
-	# ติดไฟอยู่ มีไอคอนเปลวไฟข้างแถบเลือด
-	if burn_kind != "":
-		var colors: Array = CombatData.FLAME[burn_kind]
-		var base := Vector2(BAR_W * 0.5 + 15.0, y + BAR_H + 2.0)
-		Sketch.shape(self, Sketch.flame(base, Vector2.UP, 26.0, 9.0, 3.0), 98, 2.0, colors[0])
+	_draw_badges(y + BAR_H * 0.5)
 	draw_rect(Rect2(left, y, BAR_W * clampf(hp / max_hp, 0.0, 1.0), BAR_H), Sketch.INK)
 	Sketch.line(self, PackedVector2Array([
 		Vector2(left, y), Vector2(left + BAR_W, y), Vector2(left + BAR_W, y + BAR_H), Vector2(left, y + BAR_H), Vector2(left, y),
 	]), 88, 2.0, 0.3)
 
+## ตัวเลขดาเมจนุ่มๆ ขอบครีม  ดาเมจแรงตัวใหญ่ขึ้น สีอุ่น เด้งเบาๆ ตอนขึ้น
 func _draw_numbers(y: float) -> void:
 	var font := Sketch.font()
 	for n in _numbers:
 		var u: float = float(n["t"]) / NUMBER_LIFE
-		var at := Vector2(float(n["x"]) - 8.0, y - u * NUMBER_RISE * CombatData.UNIT)
-		draw_string(font, at, str(n["text"]), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 26, Sketch.INK)
+		var big: bool = n.get("big", false)
+		var size := 34 if big else 25
+		var word := str(n["text"])
+		var w := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size).x
+		var at := Vector2(float(n["x"]), y - u * NUMBER_RISE * CombatData.UNIT)
+		var pop := 1.0 + (0.35 * sin(minf(u / 0.25, 1.0) * PI) if big else 0.0)
+		var a := clampf((1.0 - u) / 0.3, 0.0, 1.0)
+		draw_set_transform(at, 0.0, Vector2.ONE * pop)
+		draw_string_outline(font, Vector2(-w * 0.5, 0.0), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size, 6, Color(NUM_EDGE, a))
+		draw_string(font, Vector2(-w * 0.5, 0.0), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size, Color(NUM_BIG if big else NUM_INK, a))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+## ป้ายสถานะกลมนุ่มๆ เรียงข้างขวาหลอดเลือด สูงสุด 3 อัน วงนอกบอกเวลาที่เหลือ ระหว่าง HYPER ซ่อน
+func _draw_badges(cy: float) -> void:
+	if is_instance_valid(hero) and hero.in_hyper():
+		return
+	var list := []
+	if state == "stun":
+		list.append(["stun", 0.0])
+	if ice_t > 0.0:
+		list.append(["ice", ice_t])
+	if burn_kind != "" and burn_t > 0.0:
+		list.append(["burn_" + burn_kind, burn_t])
+	if root_t > 0.0:
+		list.append(["root", root_t])
+	if slow_t > 0.0:
+		list.append(["slow", slow_t])
+	if weak_t > 0.0:
+		list.append(["weak", weak_t])
+	if armor_t > 0.0:
+		list.append(["armor", armor_t])
+	if mark_t > 0.0:
+		list.append(["mark", mark_t])
+	var keys := {}
+	for e in list:
+		keys[e[0]] = true
+		if float(e[1]) > float(_st_max.get(e[0], 0.0)):
+			_st_max[e[0]] = float(e[1])
+	for k in _st_max.keys():
+		if not keys.has(k):
+			_st_max.erase(k)
+	var x := BAR_W * 0.5 + BADGE_R + 8.0
+	for i in mini(list.size(), BADGE_MAX):
+		var id: String = list[i][0]
+		var left: float = list[i][1]
+		var c := Vector2(x + float(i) * (BADGE_R * 2.0 + 6.0), cy + sin(_clock * 2.4 + float(i)) * 2.0)
+		_badge(c, id, left / maxf(float(_st_max.get(id, left)), 0.01) if left > 0.0 else 1.0)
+
+func _badge(c: Vector2, id: String, k: float) -> void:
+	var ink := Color(0.42, 0.36, 0.33)
+	var back := Color(1.0, 0.97, 0.92)
+	var tint := Color(0.85, 0.8, 0.75)
+	match id:
+		"stun": tint = Color(1.0, 0.88, 0.55)
+		"ice": tint = Color(0.72, 0.87, 1.0)
+		"burn_fire": tint = Color(1.0, 0.72, 0.55)
+		"burn_poison": tint = Color(0.72, 0.9, 0.6)
+		"burn_ice": tint = Color(0.72, 0.87, 1.0)
+		"burn_blood": tint = Color(1.0, 0.66, 0.68)
+		"root": tint = Color(0.74, 0.88, 0.64)
+		"slow": tint = Color(0.8, 0.82, 0.95)
+		"weak": tint = Color(0.86, 0.8, 0.92)
+		"armor": tint = Color(1.0, 0.76, 0.66)
+		"mark": tint = Color(1.0, 0.7, 0.72)
+	var r := BADGE_R
+	draw_circle(c + Vector2(1.5, 2.0), r, Color(0.0, 0.0, 0.0, 0.08))
+	draw_circle(c, r, back)
+	draw_circle(c, r - 3.0, tint)
+	draw_arc(c, r, 0.0, TAU, 28, Color(ink, 0.6), 2.0, true)
+	if k < 1.0:
+		draw_arc(c, r + 3.5, -PI * 0.5, -PI * 0.5 + TAU * clampf(k, 0.0, 1.0), 24, Color(ink, 0.45), 2.4, true)
+	var s := r * 0.55
+	match id:
+		"stun":
+			var pts := PackedVector2Array()
+			for j in 14:
+				var a := float(j) * 0.55 + _clock * 4.0
+				pts.append(c + Vector2(cos(a), sin(a)) * s * (0.15 + float(j) / 14.0))
+			draw_polyline(pts, ink, 2.4, true)
+		"ice", "burn_ice":
+			UiStyle.fill(self, Rect2(c - Vector2.ONE * s * 0.85, Vector2.ONE * s * 1.7), Color(1.0, 1.0, 1.0, 0.75), s * 0.45)
+			draw_line(c + Vector2(-s * 0.35, -s * 0.35), c + Vector2(-s * 0.05, -s * 0.05), Color(0.55, 0.72, 0.92), 2.4, true)
+		"burn_fire":
+			draw_colored_polygon(Sketch.flame(c + Vector2(0.0, s * 0.75), Vector2.UP, s * 1.7, s * 0.7, 1.5), Color(0.98, 0.5, 0.36))
+			draw_circle(c + Vector2(0.0, s * 0.3), s * 0.3, Color(1.0, 0.86, 0.55))
+		"burn_poison":
+			draw_circle(c + Vector2(-s * 0.3, s * 0.2), s * 0.42, Color(0.45, 0.72, 0.38))
+			draw_circle(c + Vector2(s * 0.35, -s * 0.2), s * 0.3, Color(0.45, 0.72, 0.38))
+			draw_circle(c + Vector2(s * 0.05, -s * 0.6), s * 0.18, Color(0.45, 0.72, 0.38))
+		"burn_blood":
+			draw_circle(c + Vector2(0.0, s * 0.25), s * 0.5, Color(0.86, 0.38, 0.42))
+			draw_colored_polygon(PackedVector2Array([c + Vector2(-s * 0.45, s * 0.1), c + Vector2(0.0, -s * 0.8), c + Vector2(s * 0.45, s * 0.1)]), Color(0.86, 0.38, 0.42))
+		"root":
+			draw_arc(c + Vector2(0.0, s * 0.35), s * 0.6, PI, TAU, 12, ink, 2.2, true)
+			draw_circle(c + Vector2(-s * 0.35, -s * 0.2), s * 0.32, Color(0.5, 0.74, 0.42))
+			draw_circle(c + Vector2(s * 0.35, -s * 0.35), s * 0.32, Color(0.5, 0.74, 0.42))
+		"slow":
+			draw_arc(c + Vector2(0.0, s * 0.3), s * 0.75, PI, TAU, 14, ink, 2.4, true)
+			draw_line(c + Vector2(-s * 0.75, s * 0.3), c + Vector2(s * 0.75, s * 0.3), ink, 2.4, true)
+			draw_circle(c + Vector2(-s * 0.15, -s * 0.05), s * 0.14, ink)
+			draw_circle(c + Vector2(s * 0.25, -s * 0.1), s * 0.14, ink)
+		"weak":
+			draw_line(c + Vector2(0.0, -s * 0.7), c + Vector2(0.0, s * 0.55), ink, 3.0, true)
+			draw_polyline(PackedVector2Array([c + Vector2(-s * 0.5, s * 0.1), c + Vector2(0.0, s * 0.65), c + Vector2(s * 0.5, s * 0.1)]), ink, 3.0, true)
+		"armor":
+			var sh := PackedVector2Array([c + Vector2(-s * 0.7, -s * 0.7), c + Vector2(s * 0.7, -s * 0.7), c + Vector2(s * 0.6, s * 0.15), c + Vector2(0.0, s * 0.8), c + Vector2(-s * 0.6, s * 0.15)])
+			draw_colored_polygon(sh, Color(1.0, 1.0, 1.0, 0.7))
+			draw_polyline(PackedVector2Array([c + Vector2(-s * 0.05, -s * 0.7), c + Vector2(s * 0.15, -s * 0.15), c + Vector2(-s * 0.15, s * 0.2), c + Vector2(s * 0.05, s * 0.7)]), Color(0.84, 0.4, 0.38), 2.2, true)
+		"mark":
+			draw_arc(c, s * 0.75, 0.0, TAU, 20, Color(0.84, 0.4, 0.44), 2.4, true)
+			draw_circle(c, s * 0.25, Color(0.84, 0.4, 0.44))

@@ -276,6 +276,36 @@ const PAIR_LINE := {
 		[">>xz", "กากบาทนีออน / พุ่งฟันนีออนกลับ"],
 		["^zx", "แท่งนีออนตก 2 แท่ง / ฝนนีออน 3 สาย"],
 	],
+	"TWIN TEMPO": [
+		["zzx", "คู่หูโผล่ต่อยพร้อมกัน 2 จังหวะ"],
+		[">>zx", "พุ่งคู่ ปาดสวนกันกลางมอน"],
+		["^xz", "คู่หูเสยลอย ตัวเองตบลง"],
+	],
+	"HARMONY DUET": [
+		["xxz", "ผลัดกันพุ่งตี 4 จังหวะ"],
+		[">>xz", "หมุนวอลทซ์คู่ มอนลอย"],
+		["^zx", "ดิ่งลงพร้อมกัน วงประสาน"],
+	],
+	"PSYCHE PAW": [
+		["zzx", "ข่วนดิบรัว 3 ที (ID)"],
+		[">>zx", "พุ่งตั้งสติ คลื่นสะท้อน (EGO)"],
+		["^xz", "ดิ่งลงวงจิตสองสี"],
+	],
+	"ID EGO SAGE": [
+		["xxz", "พายุข่วนดิบ ปิดล้ม (ID)"],
+		[">>xz", "กำแพงสติผลักมอน (EGO)"],
+		["^zx", "ลูก ID กับ EGO ปะทะกลางมอน"],
+	],
+	"แปลงร่าง AZURE": [
+		["zzzz", "ข่วนพลังดิบ 4 ที ทีสุดท้ายยิงประกายไล่ล่า"],
+		["xxx", "ยิงประกายไล่ล่าติดตามมอน"],
+		[">>z / >>x", "พุ่งพลังดิบ / บอลพลังกลม"],
+	],
+	"แปลงร่าง LAPIS": [
+		["zzzzz", "ฟันดาบแสงยาวรัว แรงเร็ว"],
+		["xxx", "แทงดาบยาวพุ่ง"],
+		[">>z / >>x", "พุ่งฟันผ่าน / ฟันวงกว้าง"],
+	],
 }
 const MAGE_LINE := {
 	"ARCH MAGE": [
@@ -346,6 +376,13 @@ func set_class(class_id: String, weapon := "") -> void:
 			if PAIR_LINE.has(id):
 				rows.append([id, ""])
 				rows.append_array(PAIR_LINE[id])
+		# ท่าตอนแปลงร่าง
+		if "SPARK DREAMER" in pchain:
+			rows.append(["แปลงร่าง AZURE", ""])
+			rows.append_array(PAIR_LINE["แปลงร่าง AZURE"])
+		if "SOMNAMBULIST" in pchain:
+			rows.append(["แปลงร่าง LAPIS", ""])
+			rows.append_array(PAIR_LINE["แปลงร่าง LAPIS"])
 		scroll = 0.0
 		return
 	if weapon == "bow" or weapon == "spear":

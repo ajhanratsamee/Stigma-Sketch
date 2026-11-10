@@ -25,7 +25,7 @@ const COMBO_HIT_HALF := 150.0
 const MONSTER_BODY_HALF := 46.0  # ครึ่งความกว้างหุ่นที่วาดจริง ดาบแตะขอบหุ่นก็นับ
 const BACK_MARGIN := 34.0
 const SKILL_GAP := 20.0
-const SLOT_COUNT := 4            # ช่องสกิล 4 ช่อง เรียงโค้งรอบปุ่ม Z X
+const SLOT_COUNT := 8            # ช่องสกิล 8 ช่อง แถวละ 4 สลับแถวด้วยปุ่มต้นพัด
 const SLOTS_PER_ROW := 4
 const SA_BUFF_TIME := 15.0
 const STAB_TIME := 0.8
@@ -75,6 +75,7 @@ static var just_created := -1     # ลำดับในคลังของ�
 static var dungeon_town := -1     # เล่นดันเจี้ยนอยู่ เมืองไหน ดันไหน ไม่เล่นเป็น -1 (หน้าฝึกซ้อม)
 static var dungeon_index := -1
 static var tutorial := false      # โหมดฝึกสอนของตัวที่เพิ่งสร้าง (ห้องฝึก + TutorialGuide)
+var intro_lock := false            # ท่าเปิดดัน / ท่าแพ้กำลังเล่น ไม่รับปุ่มและการเดิน
 static var return_to := "res://roster.tscn"   # ปุ่มย้อนกลับพาไปหน้านี้
 
 var world: Node2D
@@ -307,7 +308,7 @@ func _ready() -> void:
 	joy.enabled = pad.use_stick
 	joy.show_idle = tutorial
 	# จอยลอย แตะตรงไหนก็ได้ครึ่งซ้ายของจอ (ใต้การ์ดเลือด) จอยเกิดใต้นิ้ว ไม่ต้องเล็งลูกศร
-	var left_btn: Vector2 = pad.buttons.get("pswap", pad.buttons["s0"])
+	var left_btn: Vector2 = pad.buttons.get("hyper", pad.buttons.get("pswap", pad.buttons["s0"]))
 	var cells_left: float = minf(minf((pad.buttons["s0"] as Vector2).x, left_btn.x) - TouchPad.CELL * 0.5 * pad.size_k - 40.0, _view.x * 0.55)
 	joy.zone = Rect2(Vector2(0.0, 200.0), Vector2(cells_left, _view.y - 200.0))
 	pad.stick = joy
@@ -371,7 +372,7 @@ func _ready() -> void:
 		susi.setup(self)
 	elif chosen_weapon == "azure":
 		# สกิลของ CAT AZURE & LAPIS ใช้ระบบเดียวกับ SUSI
-		susi = PairSkills.new()
+		susi = PairSkillsPlus.new()
 		world.add_child(susi)
 		susi.setup(self)
 	elif chosen_weapon == "fist":
@@ -599,6 +600,11 @@ func pair_swap(manual := true, at: Variant = null, face := 0.0) -> bool:
 		return false
 	if manual and pair_swap_cd > 0.0:
 		return false
+	# แปลงร่างพลังดิบอยู่ สลับตัวไม่ได้
+	if susi != null and susi.has_method("tf_active") and susi.tf_active():
+		if manual:
+			bars.notice("แปลงร่างอยู่ สลับตัวไม่ได้")
+		return false
 	var old_at := hero.position
 	pair_form = SkillPanel.pair_partner(pair_form)
 	if at is Vector2:
@@ -626,6 +632,8 @@ func pair_swap(manual := true, at: Variant = null, face := 0.0) -> bool:
 	return true
 
 func _on_button(id: String) -> void:
+	if intro_lock:
+		return
 	match id:
 		"back":
 			# ปุ่มตั้งค่า เปิดเมนู ย้อนกลับ / ห้องฝึกซ้อม
@@ -648,9 +656,9 @@ func _on_button(id: String) -> void:
 			if hyper_id != "":
 				_skill_button = id
 				_use_skill(hyper_id)
-		"s0", "s1", "s2", "s3":
+		"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7":
 			_skill_button = id
-			_use_skill(_slots()[int(id.substr(1))])
+			_use_skill(_slot_skill(int(id.substr(1))))
 
 # ---------------------------------------------------------------- เมนูตั้งค่า
 const MENU_W := 300.0
@@ -908,9 +916,12 @@ func _slots() -> Array:
 		empty.resize(SLOT_COUNT)
 		empty.fill("")
 		equipped[key] = empty
-	# ของเก่ามี 8 ช่อง ตัดเหลือ 4
-	if (equipped[key] as Array).size() > SLOT_COUNT:
-		(equipped[key] as Array).resize(SLOT_COUNT)
+	# ของเก่ามี 4 ช่อง ขยายเป็น 8 (ช่องใหม่ว่าง)
+	var arr: Array = equipped[key]
+	while arr.size() < SLOT_COUNT:
+		arr.append("")
+	if arr.size() > SLOT_COUNT:
+		arr.resize(SLOT_COUNT)
 	return equipped[key]
 
 ## สกิลที่ใส่อยู่ถอดออก สกิลใหม่ลงช่องว่างแรก
@@ -1063,7 +1074,27 @@ func _refresh_slot() -> void:
 				pad.locked.append(slot)
 		else:
 			pad.locked.erase(slot)
+	# แปลงร่างพลังดิบ ช่องสกิลเป็นสกิลชุดแปลงร่าง 4 อย่าง
+	if susi != null and susi.has_method("tf_slots"):
+		var tf: Array = susi.tf_slots()
+		if not tf.is_empty():
+			for i in SLOT_COUNT:
+				var tid := str(tf[i]) if i < tf.size() else ""
+				pad.slot_ids[i] = tid
+				pad.slot_labels[i] = str(susi.tf_label(tid)) if tid != "" else ""
+				if tid != "":
+					pad.locked.erase("s%d" % i)
+				elif not ("s%d" % i) in pad.locked:
+					pad.locked.append("s%d" % i)
 	pad.queue_redraw()
+
+## สกิลในช่องที่ i (ตอนแปลงร่างเป็นสกิลชุดแปลงร่าง)
+func _slot_skill(i: int) -> String:
+	if susi != null and susi.has_method("tf_slots"):
+		var tf: Array = susi.tf_slots()
+		if not tf.is_empty():
+			return str(tf[i]) if i < tf.size() else ""
+	return str(_slots()[i])
 
 ## ใช้สกิลได้เฉพาะตอนยืนบนพื้น และไม่ซ้อนกับท่าที่ออกอยู่
 ## เสียงปล่อยสกิล นุ่มๆ สามแบบตามชนิดสกิล (ลม กระดิ่ง ประกาย)
@@ -1159,7 +1190,7 @@ func _use_skill(id: String) -> void:
 			_start_hyper(_new_hyper("res://cat_twilight_hyper.gd"))
 			return
 		# HYPER ของ CAT CITRUS
-		var pair_hypers := {"cat_so_hyper": "res://cat_somnambulist_hyper.gd", "cat_nb_hyper": "res://cat_neonbolt_hyper.gd"}
+		var pair_hypers := {"cat_so_hyper": "res://cat_somnambulist_hyper.gd", "cat_nb_hyper": "res://cat_neonbolt_hyper.gd", "cat_hd_hyper": "res://cat_duet_hyper.gd", "cat_ie_hyper": "res://cat_psyche_hyper.gd"}
 		if pair_hypers.has(id):
 			var ph := _new_hyper(str(pair_hypers[id]))
 			if ph != null:
@@ -2423,6 +2454,8 @@ func _step_puff(at: Vector2) -> void:
 	world.add_child(puff)
 
 func _physics_process(delta: float) -> void:
+	if intro_lock:
+		return
 	_apply_training()
 	_tick_time_stop(delta)
 	for k in skill_cds.keys():

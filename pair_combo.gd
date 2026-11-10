@@ -25,9 +25,10 @@ const NEXT := {
 }
 
 static var _moves := {}
+static var tf := ""              # แปลงร่างพลังดิบอยู่ "az" / "lp" ว่างคือร่างปกติ (คอมโบเปลี่ยนเป็นชุดแปลงร่าง)
 
 static func lines() -> Array:
-	return [PairLineDream, PairLineFiend]
+	return [PairLineDream, PairLineFiend, PairLineSync, PairLinePsyche, PairLineRaw]
 
 static func chain(class_id: String) -> Array:
 	var out := []
@@ -44,6 +45,8 @@ static func form() -> String:
 	return "lp" if WalkPage.pair_form == "lapis" else "az"
 
 static func start(class_id: String, state: String, button: String, down := false, back := false, forward := false) -> String:
+	if tf != "":
+		return PairLineRaw.start_tf(tf, state, button)
 	var mods := []
 	if down:
 		mods.append("down_")
@@ -70,6 +73,8 @@ static func start(class_id: String, state: String, button: String, down := false
 	return p + ("z1" if button == "z" else "x1")
 
 static func next(class_id: String, current: String, button: String, down: bool, forward: bool, back := false) -> String:
+	if tf != "":
+		return PairLineRaw.next_tf(tf, current, button)
 	var keys := []
 	if down:
 		keys.append("down_" + button)

@@ -17,6 +17,7 @@ config/icon="res://icon_cat.png"
 WebFullscreen="*res://web_fullscreen.gd"
 Sfx="*res://sfx.gd"
 AppPause="*res://app_pause.gd"
+Iris="*res://iris.gd"
 
 [display]
 

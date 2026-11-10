@@ -2442,7 +2442,9 @@ func _build_collar(top: float) -> void:
 	ring.rings = 40
 	ring.ring_segments = 10
 	_part(_torso, ring, band, Vector3(0.0, y, 0.0), Vector3(1.0, 1.1, CAT_DEPTH))
-	var front := Vector3(0.0, y - 0.07, r * CAT_DEPTH + 0.05)
+	# กระดิ่งห้อยต่ำลงใต้ปลอกคอ ไม่บังปาก
+	var r_low: float = float(_cat_r[int((k - 0.06) * 40.0)])
+	var front := Vector3(0.0, y - 0.15, r_low * CAT_DEPTH + 0.05)
 	_part(_torso, _ball(0.085), _mat(Color(1.0, 0.82, 0.3), 0.2, 0.9), front)
 	_part(_torso, _rod(0.088, 0.014, 16), _mat(Color(0.8, 0.55, 0.15), 0.3, 0.8), front + Vector3(0.0, 0.015, 0.0))
 	_part(_torso, _ball(0.016), _mat(Color(0.3, 0.2, 0.1), 0.6, 0.2), front + Vector3(0.0, -0.045, 0.07))

@@ -17,7 +17,7 @@ var _t := 0.0
 
 static func cast(page: WalkPage, fx: String) -> void:
 	# คอมโบของสายต่อยอด (SPARK DREAMER / SOMNAMBULIST / SPARK FIEND / NEON BOLT)
-	if PairLineDream.cast(page, fx) or PairLineFiend.cast(page, fx):
+	if PairLineDream.cast(page, fx) or PairLineFiend.cast(page, fx) or PairLineSync.cast(page, fx) or PairLinePsyche.cast(page, fx) or PairLineRaw.cast(page, fx):
 		return
 	var k := fx.trim_prefix("pc_")
 	var f := page.hero.facing

@@ -49,6 +49,8 @@ static func town_total() -> int:
 ## เลเวลขั้นต่ำที่เข้าดันนี้ได้ ไล่จากต้นช่วงของเมืองขึ้นไปตามลำดับดัน
 static func dungeon_level(town: int, index: int) -> int:
 	var r := town_levels(town)
+	if is_special(index):
+		return r.x
 	var n := dungeon_count(town)
 	return r.x + floori(float(r.y - r.x) * float(index) / float(n))
 
@@ -79,7 +81,29 @@ const BOSSES := ["boss_club", "boss_spear", "boss_hammer", "boss_scythe", "boss_
 static func town_name(town: int) -> String:
 	return TOWN_NAMES[town] if town >= 0 and town < TOWN_NAMES.size() else "เมือง %d" % (town + 1)
 
+## ดันพิเศษ (ฟาร์มหินเสริมพลังกับเหรียญปลา) เมืองละ 1 ดัน ใช้เลขดันนี้ เข้าได้วันละ 3 รอบ (DungeonRank)
+const SPECIAL := 50
+const SPECIAL_THEMES := ["mine", "crystal", "mushcave", "pier", "desertruin", "snowpass", "crater", "cells", "cloudgarden"]
+
+static func is_special(index: int) -> bool:
+	return index == SPECIAL
+
+## ลำดับดันที่ใช้คิดความยาก (ดันพิเศษเทียบเท่าดันที่ 2 ของเมือง)
+static func eff_index(index: int) -> int:
+	return 1 if is_special(index) else index
+
+static func special(town: int) -> Dictionary:
+	if town < 0 or town >= town_total():
+		return {}
+	var theme: String = SPECIAL_THEMES[town % SPECIAL_THEMES.size()]
+	return {"name": "ขุมทรัพย์%s" % THEME_WORDS.get(theme, "ลับ"), "icon": theme, "theme": theme, "special": true,
+		"map": Vector2(0.72, 0.85),
+		"text": "ฟาร์ม EXP เคลียร์ x%.1f  วันละ %d รอบ" % [DungeonRank.SPECIAL_EXP, DungeonRank.SPECIAL_PER_DAY],
+		"boss": BOSSES[(town + 2) % BOSSES.size()]}
+
 static func dungeon(town: int, index: int) -> Dictionary:
+	if is_special(index):
+		return special(town)
 	if town < 0 or town >= town_total() or index < 0 or index >= dungeon_count(town):
 		return {}
 	if town < TOWNS.size():
@@ -197,16 +221,24 @@ static func _density(town: int) -> float:
 static func _n(base: int, town: int) -> int:
 	return maxi(1, int(round(float(base) * _density(town))))
 
-## วางมอนบนพื้นห่างเท่าๆ กันตลอดช่วง x0..x1 (ตัวบนแท่นไม่ขยับ)
-static func _spread(list: Array, x0: float, x1: float) -> Array:
+## วางมอนบนพื้นเป็นกลุ่มเล็ก กลุ่มละ 3 ตัว (ห่างกัน 1.7) กลุ่มกระจายห่างเท่าๆ กันตลอดช่วง x0..x1
+## สกิลตีหมู่เคลียร์ได้ทีละกลุ่ม แต่จอไม่แน่นลายตา (ตัวบนแท่นไม่ขยับ)
+const GROUP := 3
+const GROUP_GAP := 1.7
+
+static func _spread(list: Array, x0: float, x1: float, group := GROUP) -> Array:
 	var ground := []
 	for e in list:
 		if int(e[3]) < 0:
 			ground.append(e)
 	var n := ground.size()
+	var groups := maxi(ceili(float(n) / float(group)), 1)
 	for i in n:
-		var t := (float(i) + 0.5) / float(maxi(n, 1))
-		ground[i][2] = lerpf(x0, x1, t)
+		var g := i / group
+		var m := mini(group, n - g * group)
+		var j := i - g * group
+		var t := (float(g) + 0.5) / float(groups)
+		ground[i][2] = clampf(lerpf(x0, x1, t) + (float(j) - float(m - 1) * 0.5) * GROUP_GAP, x0 - 2.0, x1 + 2.0)
 	return list
 
 ## จำนวนชั้นแท่นเหนือพื้น เมืองแรก 2 (รวมพื้นเป็น 3 ชั้น) เมือง 2-4 มี 3 ชั้น เมืองหลังจากนั้น 4 ชั้น (รวม 5)
@@ -262,12 +294,16 @@ static func rooms(town: int, index: int) -> Array:
 	var d := dungeon(town, index)
 	if d.is_empty():
 		return []
+	var sp := is_special(index)
+	index = eff_index(index)
 	var fod: String = FODDER[(index + town) % FODDER.size()]
 	var more := mini(index, 6)  # ดันลึกเพิ่มมอน
-	var h := room_half(town)
+	# ดันพิเศษห้องสั้นกว่า (ฟาร์มไว ตีหมู่ทีเดียวหมดกลุ่ม) มีแค่ วอร์มอัพ ต่อสู้ แล้วบอสผู้เฝ้าคลัง
+	var h := room_half(town) * (0.55 if sp else 1.0)
 	var nt := tiers(town)
 	var plats := _plats(h, nt)
 	var up_n := 2 + mini(town, 3)   # มอนบนชั้นสูงต่อระลอก
+	var grp := 1 if town == 0 else GROUP   # เมืองแรกกระจายเดี่ยวๆ (ผู้เล่นใหม่) เมืองถัดไปเป็นกลุ่มเล็กให้สกิลตีหมู่
 	var out := []
 	# ห้อง 1 วอร์มอัพ ตัวเล็กเลือดน้อย กระจายทั้งห้อง มีบนแท่นบ้าง
 	var w1 := []
@@ -275,7 +311,7 @@ static func rooms(town: int, index: int) -> Array:
 		w1.append(["hopper", fod, 0.0, -1])
 	for p in _pick_upper(plats, up_n, 0):
 		w1.append(["hopper", fod, 0.0, p])
-	out.append({"type": "warm", "half": h, "waves": [_spread(w1, -h + 14.0, h - 8.0)], "platforms": plats, "spikes": []})
+	out.append({"type": "warm", "half": h, "waves": [_spread(w1, -h + 14.0, h - 8.0, grp)], "platforms": plats, "spikes": []})
 	# ห้อง 2 ต่อสู้หลัก แทงค์ ซัพพอร์ต ตัวยิงบนแท่นสูง ระลอกสองตัวพุ่งชน
 	var core_up := _pick_upper(plats, up_n + 1, 1)
 	var a1 := [["tank", "cat_box", 0.0, -1], ["support", "cat_long", 0.0, -1], ["tank", "cat_box", 0.0, -1]]
@@ -288,7 +324,7 @@ static func rooms(town: int, index: int) -> Array:
 	var a2 := [["rusher", "cat_puff", 0.0, -1], ["rusher", "cat_puff", 0.0, -1], ["rusher", "cat_puff", 0.0, -1]]
 	for i in _n(5 + more, town):
 		a2.append(["hopper", fod, 0.0, -1])
-	out.append({"type": "core", "half": h, "waves": [_spread(a1, -h + 14.0, h - 8.0), _spread(a2, -h + 22.0, h - 6.0)], "platforms": plats, "spikes": []})
+	out.append({"type": "core", "half": h, "waves": [_spread(a1, -h + 14.0, h - 8.0, grp), _spread(a2, -h + 22.0, h - 6.0, grp)], "platforms": plats, "spikes": []})
 	# ห้อง 3 กับดักหนาม ต้องหลบไปพร้อมสู้ หนามกระจายตามห้อง ตัวยิงผีบนแท่นสูง
 	var t1 := [["tank", "cat_box", 0.0, -1], ["tank", "cat_box", 0.0, -1]]
 	for p in _pick_upper(plats, up_n, 2):
@@ -303,7 +339,7 @@ static func rooms(town: int, index: int) -> Array:
 	while sx < h - 10.0:
 		spikes.append(sx)
 		sx += 22.0
-	out.append({"type": "trap", "half": h, "waves": [_spread(t1, -h + 14.0, h - 8.0), _spread(t2, -h + 22.0, h - 6.0)], "platforms": plats, "spikes": spikes})
+	out.append({"type": "trap", "half": h, "waves": [_spread(t1, -h + 14.0, h - 8.0, grp), _spread(t2, -h + 22.0, h - 6.0, grp)], "platforms": plats, "spikes": spikes})
 	# ห้อง 4 มินิบอส ลานยาวครึ่งหนึ่ง เลือดเยอะ เกราะหนา มีลูกน้องกระจาย แท่นบันไดไว้หลบ
 	var mh := h * 0.5
 	var mplats := _plats(mh, mini(nt, 3))
@@ -315,6 +351,10 @@ static func rooms(town: int, index: int) -> Array:
 	out.append({"type": "mid", "half": mh, "waves": [m1], "platforms": mplats, "spikes": []})
 	# ห้อง 5 บอส ลานกว้าง ไม่มีลูกน้อง มีแท่นไว้หลบท่าใหญ่ทั้งลาน
 	var boss_look := str(d.get("boss", "boss_club"))
+	if sp:
+		out = [out[0], out[1]]
+		out.append({"type": "boss", "waves": [[[boss_look, boss_look, 6.0, -1]]], "platforms": [[-13.0, -9.0, 1.8], [9.0, 13.0, 1.8], [-2.0, 2.0, 3.5]], "spikes": []})
+		return out
 	if not raid(town, index).is_empty():
 		# บอสยักษ์แบบรุม ยืนนิ่งชิดขวาหรือกลางลาน แท่นสองข้างไว้หลบของตกกับแขนกวาด
 		out.append({"type": "boss", "raid": true, "waves": [[["boss_raid", boss_look, 12.0, -1]]], "platforms": [[-14.0, -10.0, 1.8], [-4.0, 0.0, 1.8]], "spikes": []})
@@ -325,6 +365,8 @@ static func rooms(town: int, index: int) -> Array:
 ## บอสยักษ์แบบรุม: ดันสุดท้ายของเมืองตั้งแต่เมือง 3 (town 2) และดันเลขคี่ของเมืองโหด (town 4 ขึ้นไป)
 ## คืน {} ถ้าเป็นบอสปกติ  ยิ่งเมืองโหด เลือดยิ่งเยอะ เฟสยิ่งมาก ตีแรงขึ้น เร็วขึ้น
 static func raid(town: int, index: int) -> Dictionary:
+	if is_special(index):
+		return {}
 	var last := index == dungeon_count(town) - 1
 	if not ((town >= 2 and last) or (town >= 4 and index % 2 == 1)):
 		return {}
@@ -371,4 +413,4 @@ static func early_boss_slow(town: int) -> float:
 
 ## ดันเจี้ยนยิ่งลึกมอนยิ่งอึด
 static func hp_scale(town: int, index: int) -> float:
-	return LevelData.power(dungeon_level(town, index)) * (1.0 + 0.08 * float(index)) * early_hp(town)
+	return LevelData.power(dungeon_level(town, index)) * (1.0 + 0.08 * float(eff_index(index))) * early_hp(town)

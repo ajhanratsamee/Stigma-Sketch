@@ -73,10 +73,14 @@ const CLASS_BOX := {
 	"KUNG FU": Rect2(1230.0, 178.0, 230.0, 70.0),
 	"MUAY THAI": Rect2(1230.0, 278.0, 250.0, 70.0),
 	"SAMBO": Rect2(1230.0, 378.0, 210.0, 70.0),
-	"SPARK DREAMER": Rect2(880.0, 128.0, 290.0, 70.0),
-	"SPARK FIEND": Rect2(880.0, 328.0, 270.0, 70.0),
-	"SOMNAMBULIST": Rect2(1190.0, 128.0, 290.0, 70.0),
-	"NEON BOLT": Rect2(1190.0, 328.0, 240.0, 70.0),
+	"SPARK DREAMER": Rect2(880.0, 78.0, 290.0, 70.0),
+	"SPARK FIEND": Rect2(880.0, 178.0, 270.0, 70.0),
+	"TWIN TEMPO": Rect2(880.0, 278.0, 270.0, 70.0),
+	"PSYCHE PAW": Rect2(880.0, 378.0, 270.0, 70.0),
+	"SOMNAMBULIST": Rect2(1190.0, 78.0, 290.0, 70.0),
+	"NEON BOLT": Rect2(1190.0, 178.0, 240.0, 70.0),
+	"HARMONY DUET": Rect2(1190.0, 278.0, 290.0, 70.0),
+	"ID EGO SAGE": Rect2(1190.0, 378.0, 270.0, 70.0),
 	"GODHOOD": Rect2(1150.0, 378.0, 180.0, 70.0),
 }
 const CLASS_TEXT := 28
@@ -94,7 +98,7 @@ const BUTTON_LINE := 4.0
 const BUTTON_TEXT := "สร้างตัวละคร"
 const TRY_TEXT := "ทดลองเล่น"
 const BUTTON_GAP := 40.0
-const SHOW_TRY := false          # ปุ่มทดลองเล่น ปิดไว้ (เปิดกลับได้)
+const SHOW_TRY := true           # ปุ่มทดลองเล่น
 const BUTTON_TEXT_SIZE := 38
 
 var heroes := {}

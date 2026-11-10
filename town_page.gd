@@ -87,7 +87,7 @@ func _ready() -> void:
 	_town = TownData.town(current_town) if current_town < TownData.TOWNS.size() else {}
 	style = str(_town.get("style", "street"))
 	# ในเมืองโจมตีและใช้สกิลไม่ได้ ซ่อนปุ่มโจมตี ช่องสกิล HYPER
-	for id in ["z", "x", "hyper", "swap", "down", "s0", "s1", "s2", "s3"]:
+	for id in ["z", "x", "hyper", "swap", "down", "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7"]:
 		pad.buttons.erase(id)
 	pad.queue_redraw()
 	# หมอกจางๆ คลุมฉากทั้งหมด ฉากดูไกลขึ้น ตัวละครเด่น
@@ -1092,7 +1092,21 @@ func _npc_at(at: Vector2) -> TownNpc:
 			return n
 	return null
 
-## วาปไปชั้นอื่น จอค่อยๆ ขาว ฉากเลื่อนขึ้นหรือลง แล้วสร้างชั้นใหม่
+## ชั้นใหม่อาจเป็นในบ้าน/สวน เปลี่ยนชนิดสัตว์ตัวเล็กตาม
+func _rebuild_critters() -> void:
+	var old = get_meta("critters", null)
+	if old is Node and is_instance_valid(old):
+		(old as Node).queue_free()
+	if style == "curve":
+		return
+	var critters := AmbientCritters.new()
+	critters.page = self
+	critters.kind = AmbientCritters.kind_for(self)
+	world.add_child(critters)
+	world.move_child(critters, 0)
+	set_meta("critters", critters)
+
+## วาปไปชั้นอื่น วงกลมหดรอบตัวละคร ฉากเลื่อนขึ้นหรือลง แล้วสร้างชั้นใหม่
 func warp_to(to: int, to_x: float, up: bool) -> void:
 	if _warping or to < 0 or to >= floors().size():
 		return
@@ -1103,9 +1117,8 @@ func warp_to(to: int, to_x: float, up: bool) -> void:
 	var base_y := _view.y * GROUND_AT
 	var tw := create_tween()
 	tw.tween_method(func(k: float) -> void:
-		_fade_a = k
-		world.position.y = base_y + dir * 120.0 * k
-		_fade.queue_redraw(), 0.0, 1.0, 0.25)
+		IrisFx.set_amount(k)
+		world.position.y = base_y + dir * 120.0 * k, 0.0, 1.0, 0.3)
 	tw.tween_callback(func() -> void:
 		_floor = to
 		_build_floor()
@@ -1114,11 +1127,10 @@ func warp_to(to: int, to_x: float, up: bool) -> void:
 		hero.vel = Vector2.ZERO
 		_follow(0.0))
 	tw.tween_method(func(k: float) -> void:
-		_fade_a = 1.0 - k
-		world.position.y = base_y - dir * 120.0 * (1.0 - k)
-		_fade.queue_redraw(), 0.0, 1.0, 0.25)
+		IrisFx.set_amount(1.0 - k)
+		world.position.y = base_y - dir * 120.0 * (1.0 - k), 0.0, 1.0, 0.3)
 	tw.tween_callback(func() -> void:
 		world.position.y = base_y
-		_fade_a = 0.0
-		_fade.queue_redraw()
+		IrisFx.set_amount(0.0)
+		_rebuild_critters()
 		_warping = false)

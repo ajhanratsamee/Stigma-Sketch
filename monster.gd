@@ -209,8 +209,11 @@ func _back_draw(top: float, k: float) -> void:
 		c = Color(0.85, 0.4, 1.0, 0.15 + 0.2 * pulse * k)
 	_back.draw_circle(Vector2(0.0, -top * 0.45), top * (0.52 + 0.08 * k), c)
 
+## ความคลาดเคลื่อนของความสูงพื้น/แท่น pos เก็บเป็นเลข 32 บิต ความสูงอย่าง 3.4 ปัดแล้วสูงกว่าเดิมนิดหน่อย
+const FLOOR_EPS := 0.002
+
 func on_floor() -> bool:
-	return pos.y <= floor_h and vel.y <= 0.0
+	return pos.y <= floor_h + FLOOR_EPS and vel.y <= 0.0
 
 func is_invulnerable() -> bool:
 	return state == "down" or state == "getup" or state == "dead" or kd_flight
@@ -492,7 +495,7 @@ func _physics_process(delta: float) -> void:
 	pos += vel * delta
 	if plat != Vector2.ZERO:
 		pos.x = clampf(pos.x, plat.x, plat.y)
-	if pos.y <= floor_h:
+	if pos.y <= floor_h + FLOOR_EPS:
 		pos.y = floor_h
 		vel.y = minf(vel.y, 0.0) if vel.y > 0.0 else 0.0
 	_keep_inside(vx_before)

@@ -1,11 +1,12 @@
 class_name SettingsPanel
 extends Node2D
-## แผงตั้งค่าโทนนุ่ม: ความดังเพลง เสียงเอฟเฟกต์ สั่น ความโปร่งช่องสกิล ขนาดปุ่ม  แตะนอกแผงหรือปุ่ม "เสร็จ" คือปิด
+## แผงตั้งค่าโทนนุ่ม: ความดังเพลง เสียงเอฟเฟกต์ สั่น ความโปร่งช่องสกิล ขนาดปุ่ม โหมดลื่น  แตะนอกแผงหรือปุ่ม "เสร็จ" คือปิด
 
 signal closed
 
 const W := 720.0
-const ROW_H := 74.0
+const ROW_H := 70.0
+const ROWS := 6
 const TOP := 96.0
 const STEP := 0.1
 const LABEL_SIZE := 28
@@ -30,7 +31,7 @@ func _view() -> Vector2:
 
 func card() -> Rect2:
 	var v := _view()
-	var h := TOP + ROW_H * 5.0 + 110.0
+	var h := TOP + ROW_H * float(ROWS) + 104.0
 	return Rect2(Vector2(v.x * 0.5 - W * 0.5, v.y * 0.5 - h * 0.5), Vector2(W, h))
 
 func row_y(i: int) -> float:
@@ -46,6 +47,7 @@ func hit_rects() -> Array:
 		out.append(["minus%d" % i, Rect2(Vector2(x1 - 250.0, y - 28.0), Vector2(56.0, 56.0))])
 		out.append(["plus%d" % i, Rect2(Vector2(x1 - 56.0, y - 28.0), Vector2(56.0, 56.0))])
 	out.append(["vib", Rect2(Vector2(x1 - 250.0, row_y(2) - 28.0), Vector2(250.0, 56.0))])
+	out.append(["smooth", Rect2(Vector2(x1 - 250.0, row_y(5) - 28.0), Vector2(250.0, 56.0))])
 	for k in 3:
 		out.append(["alpha%d" % k, Rect2(Vector2(x1 - 250.0 + 86.0 * float(k), row_y(3) - 28.0), Vector2(78.0, 56.0))])
 		out.append(["size%d" % k, Rect2(Vector2(x1 - 250.0 + 86.0 * float(k), row_y(4) - 28.0), Vector2(78.0, 56.0))])
@@ -75,6 +77,9 @@ func _press(id: String) -> void:
 			GameSettings.vibrate = not GameSettings.vibrate
 			if GameSettings.vibrate:
 				Snd.buzz(25)
+		"smooth":
+			GameSettings.smooth = not GameSettings.smooth
+			SoftWorld.refresh_all(get_tree())
 		"done":
 			close()
 			return
@@ -105,7 +110,7 @@ func _draw() -> void:
 	UiStyle.fill(self, Rect2(c.position + Vector2(4.0, 6.0), c.size), Color(0.0, 0.0, 0.0, 0.08))
 	UiStyle.box(self, c, 1301, UiStyle.LINE, UiStyle.INK, UiStyle.PAPER)
 	UiStyle.text(self, Vector2(c.get_center().x, c.position.y + 52.0), "ตั้งค่า", 36, UiStyle.INK)
-	var labels := ["เพลง", "เสียงเอฟเฟกต์", "สั่นเมื่อโดนตี", "ความโปร่งช่องสกิล", "ขนาดปุ่ม"]
+	var labels := ["เพลง", "เสียงเอฟเฟกต์", "สั่นเมื่อโดนตี", "ความโปร่งช่องสกิล", "ขนาดปุ่ม", "โหมดลื่น (เครื่องช้า)"]
 	var font := Sketch.font()
 	for i in labels.size():
 		draw_string(font, Vector2(c.position.x + 44.0, row_y(i) + float(LABEL_SIZE) * 0.36), labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1.0, LABEL_SIZE, UiStyle.INK)
@@ -124,6 +129,7 @@ func _draw() -> void:
 		if val > 0.0:
 			UiStyle.fill(self, Rect2(bar.position, Vector2(maxf(bar.size.x * val, 8.0), bar.size.y)), Color(0.77, 0.63, 0.55), 4.0)
 	_chip(hits["vib"], "เปิด" if GameSettings.vibrate else "ปิด", GameSettings.vibrate, 1330)
+	_chip(hits["smooth"], "เปิด" if GameSettings.smooth else "ปิด", GameSettings.smooth, 1335)
 	for k in 3:
 		_chip(hits["alpha%d" % k], "%d%%" % roundi(GameSettings.ALPHAS[k] * 100.0), GameSettings.alpha_i == k, 1340 + k)
 		_chip(hits["size%d" % k], GameSettings.SIZE_NAMES[k], GameSettings.size_i == k, 1350 + k)

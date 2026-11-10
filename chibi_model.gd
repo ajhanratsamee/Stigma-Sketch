@@ -151,7 +151,7 @@ void fragment() {
 const CAT_SIZE := 0.7            # ย่อทั้งตัวให้เตี้ยกว่า BOYS เล็กลงอีกให้เห็นระยะสกิลชัดและน่ารักขึ้น
 const CAT_FUR := Color(0.6, 0.61, 0.64)
 const CAT_EYE := Color(0.06, 0.06, 0.07)
-const CAT_FLOAT := 0.26          # ก้นลอยสูงจากพื้นเท่านี้
+const CAT_FLOAT := 0.17          # ก้นลอยสูงจากพื้นเท่านี้ (ต่ำลง ตัวนั่งชิดเท้าก้อนกลม)
 const CAT_DEPTH := 0.9
 const CAT_FLUFF := 0.0          # ผิวเรียบนุ่มนวล ไม่มีขนฟู (เดิม 0.022)
 const CAT_HAND_R := 0.14
@@ -166,6 +166,12 @@ const CAT_EAR_X := 0.32
 const CAT_EAR_H := 0.4
 const CAT_EAR_W := 0.26
 const CAT_EAR_FLAT := 1.9        # หูแบนหน้าหลัง
+const CAT_EAR_SCALE := 0.72      # หูเตี้ยลงจากเดิม ไม่แหลมสูงเหมือนเขา
+const CAT_EAR_WIDE := 1.12       # ฐานหูกว้างขึ้นนิด ปลายจึงมน
+# 2. หันหน้าเข้ากล้องมากขึ้น (มุม 3/4) เห็นตาสองข้าง ตาโตขึ้น
+const CAT_TURN := 38.0           # แมวหันเฉียง (0 = หันหน้าเข้ากล้อง 90 = ข้างเต็ม) เดิมใช้ TURN 58
+const CAT_EYE_K := 1.22          # ตาใหญ่ขึ้น
+const CAT_EYE_X := 0.2
 const CAT_HIP_X := 0.22
 const CAT_LEAN := 0.45           # ตัวกลมเอนน้อยกว่า BOYS
 # รูปตัดตัว ความสูงเทียบก้น และรัศมี ก้นกว้าง หัวกลม
@@ -258,12 +264,14 @@ const DARK_BLADE := Color(0.09, 0.08, 0.1)
 const DARK_RED := Color(0.85, 0.08, 0.1)
 const DARK_GLOVE := Color(0.07, 0.07, 0.08)
 const BACK_SHIELD_R := 0.3
-const CAT_FOOT := [Vector2(0.0, 0.0), Vector2(0.03, 0.09), Vector2(0.08, 0.14), Vector2(0.15, 0.15), Vector2(0.22, 0.14), Vector2(0.27, 0.09), Vector2(0.3, 0.0)]
-const CAT_PROFILE := [Vector2(0.0, 0.0), Vector2(0.04, 0.42), Vector2(0.16, 0.62), Vector2(0.4, 0.7), Vector2(0.7, 0.68), Vector2(0.95, 0.62), Vector2(1.15, 0.58), Vector2(1.31, 0.48), Vector2(1.43, 0.3), Vector2(1.5, 0.0)]
+# เท้าก้อนกลมเล็ก (เดิมแผ่นแบน) โดมสูงเกือบเท่ากว้าง
+const CAT_FOOT := [Vector2(0.0, 0.0), Vector2(0.025, 0.1), Vector2(0.07, 0.15), Vector2(0.12, 0.165), Vector2(0.17, 0.15), Vector2(0.21, 0.1), Vector2(0.235, 0.0)]
+# ตัวทรงโมจิ: เตี้ยลง 7% กว้างขึ้น 6% จากทรงไข่เดิม (สูง 1.5)
+const CAT_PROFILE := [Vector2(0.0, 0.0), Vector2(0.037, 0.445), Vector2(0.149, 0.657), Vector2(0.372, 0.742), Vector2(0.651, 0.721), Vector2(0.884, 0.657), Vector2(1.07, 0.615), Vector2(1.218, 0.509), Vector2(1.33, 0.318), Vector2(1.395, 0.0)]
 
 # ขอบดำบางมากรอบตัวแมวและอาวุธ หนา 1 จุดของภาพโมเดล ผสมตามความทึบของขอบ จึงไม่หยัก
 const INK_LINE := Color(0.27, 0.23, 0.21)   # เส้นขอบตัวแมวสีน้ำตาลเทาเข้ม นุ่มกว่าดำ
-const INK_WIDTH := 1.0
+const INK_WIDTH := 2.6           # เส้นขอบในพิกัดภาพโมเดล (ย่อแล้วราว 1.2 จุดบนจอ) 1.0 บางจนเห็นเป็นจุดๆ ขอบตัวดูขรุขระ
 const ARMOR_LINE := Color(0.95, 0.1, 0.1)   # เกราะ ขอบตัวเป็นสีแดงหนาขึ้น
 const ARMOR_WIDTH := 2.2
 const ROLL_AXIS := Vector3(0.3, 0.0, 1.0)   # แกนตีลังกา เกือบตั้งฉากกับจอ เอียงนิดหน่อย
@@ -460,6 +468,19 @@ func _ready() -> void:
 	_ready_rest()
 
 ## ค่าที่ขึ้นกับสไตล์ ใช้ทั้งตอนสร้างจริงและตอนสร้างล่วงหน้า
+## รัศมีตัวแมวที่ความสูง h (เทียบฐานโปรไฟล์)
+static func _cat_radius_at(h: float) -> float:
+	for i in CAT_PROFILE.size() - 1:
+		var a: Vector2 = CAT_PROFILE[i]
+		var b: Vector2 = CAT_PROFILE[i + 1]
+		if h >= a.x and h <= b.x:
+			return lerpf(a.y, b.y, (h - a.x) / maxf(b.x - a.x, 0.0001))
+	return 0.0
+
+## มุมหันตัวตามทิศ แมวหันเข้ากล้องมากกว่า (เห็นหน้า)
+func _turn_deg() -> float:
+	return CAT_TURN if style.begins_with("cat") else TURN
+
 func _setup_style() -> void:
 	_is_cat = style.begins_with("cat")
 	_knight = style == "cat_knight" or style == "cat_grand" or style == "cat_grand_armor"
@@ -629,7 +650,7 @@ func _sync(delta: float) -> void:
 	_track_events(ground, delta)
 	var wind := 0.0 if stage_mode else hero.plain_jump_wind
 	# หันตัว
-	var want := stage_turn if stage_mode else TURN * signf(hero.facing)
+	var want := stage_turn if stage_mode else _turn_deg() * signf(hero.facing)
 	_turn = move_toward(_turn, want, TURN_RATE * delta) if delta > 0.0 else want
 	_turn_node.rotation_degrees.y = _turn + _combo_spin()
 	var roll := _combo_roll()
@@ -973,6 +994,9 @@ func _sync_arms(breathe: float, wind: float, busy: bool, delta: float) -> void:
 		if style == "cat_azure" or style.begins_with("cat_azure~"):
 			# ปล่อยมือลงข้างตัวสบายๆ กรงเล็บห้อยลงพื้น ยังเห็นกรงเล็บชัด
 			side_hand = _world(Vector3(-OFF_REST.x * wide_hands * 1.35, OFF_REST.y - 0.12, OFF_REST.z + 0.35 - swing_w)) + Vector3(0.0, body_y, 0.0)
+		elif style.begins_with("cat_bow"):
+			# ธนูเล็กลงแล้วจมหลังตัวตอนหันข้าง ถือไว้หน้าตัวเยื้องออกด้านหน้า เห็นคันธนูชัด
+			side_hand = _world(Vector3(-OFF_REST.x * wide_hands * 0.7, OFF_REST.y + BOW_FRONT_UP, OFF_REST.z + BOW_FRONT_Z - swing_w)) + Vector3(0.0, body_y, 0.0)
 		hand = hand.lerp(side_hand, calm)
 		off_target = off_target.lerp(_world(Vector3(OFF_REST.x, OFF_REST.y, OFF_REST.z + swing_w)) + Vector3(0.0, body_y, 0.0), calm * _run_k)
 		if wide_hands != 1.0:
@@ -1296,16 +1320,19 @@ func _build_cat() -> void:
 	for i in 41:
 		_cat_r.append(_profile_at(CAT_PROFILE, float(i) / 40.0).y)
 	var face := Vector3(0.0, CAT_FLOAT - HIP_Y + top * 0.8, 0.0)
+	# ผิวหน้าที่ความสูงตา (ตัวโมจิกว้างขึ้น ตาต้องไม่จมในตัว)
+	var face_r: float = _cat_radius_at(top * 0.8)
+	var eye_z: float = CAT_DEPTH * sqrt(maxf(face_r * face_r - CAT_EYE_X * CAT_EYE_X, 0.01)) + 0.02
 	var foot_mesh := _lathe(CAT_FOOT, 1.0, 0.0 if style.begins_with("cat_staff") else CAT_FLUFF * 1.4, false)
 	for side in [-1.0, 1.0]:
-		_cat_eyes.append(_part(_torso, _ball(0.07), eye, face + Vector3(side * 0.2, 0.0, 0.47), Vector3(0.85, 1.3, 0.45)))
-		_cat_eye_home.append(face + Vector3(side * 0.2, 0.0, 0.47))
+		_cat_eyes.append(_part(_torso, _ball(0.07), eye, face + Vector3(side * CAT_EYE_X, 0.0, eye_z), Vector3(0.85, 1.3, 0.45) * CAT_EYE_K))
+		_cat_eye_home.append(face + Vector3(side * CAT_EYE_X, 0.0, eye_z))
 		# ตอนควบตัวนอน ยอดหัวกลายเป็นด้านหน้า ตาย้ายไปกลางยอดหัวค่อนลงล่าง หน้าจึงมองไปข้างหน้า ตัวเอียงไม่ถึงแนวนอนจึงเงยนิดๆ
 		_cat_eye_up.append(Vector3(side * 0.15, CAT_FLOAT - HIP_Y + top * 0.955, 0.14))
 	_build_collar(top)
 	# ปากแมว ω ใต้ตา
 	var mouth := _group(_torso)
-	mouth.position = face + Vector3(0.0, -0.14, 0.5)
+	mouth.position = face + Vector3(0.0, -0.14, CAT_DEPTH * _cat_radius_at(top * 0.8 - 0.14) + 0.015)
 	for side in [-1.0, 1.0]:
 		for n in 7:
 			var a := PI * float(n) / 6.0
@@ -1315,7 +1342,7 @@ func _build_cat() -> void:
 		_build_faces(eye, face)
 	for i in 2:
 		var foot := _group(_turn_node)
-		_part(foot, foot_mesh, fur, Vector3(0.0, -0.08, 0.04), Vector3(1.0, 0.6, 1.3))
+		_part(foot, foot_mesh, fur, Vector3(0.0, -0.08, 0.03), Vector3(1.0, 0.85, 1.12))
 		_legs.append([_group(_turn_node), _group(_turn_node), _group(_turn_node), foot])
 	_arm_r = [_group(_view), _group(_view), _group(_view), _group(_view)]
 	_arm_l = [_group(_view), _group(_view), _group(_view), _group(_view)]
@@ -1980,17 +2007,22 @@ func _lift_head(v: Vector3, top: float) -> Vector3:
 	var pivot := Vector3(0.0, top * CAT_NECK_FROM, 0.0)
 	return pivot + Basis(Vector3.RIGHT, -deg_to_rad(CAT_HEAD_LIFT) * w) * (v - pivot)
 
-## ยอดหูดึงผิวด้านบนขึ้นเป็นกรวยแหลม ใกล้จุดกลางหูยิ่งสูง
+## ยอดหูดึงผิวด้านบนขึ้นเป็นโดมปลายมน ใกล้จุดกลางหูยิ่งสูง (หูเตี้ย ไม่แหลม)
 func _ear_lift(v: Vector3, top: float, twitch := false) -> float:
 	var upper := clampf((v.y - top * 0.6) / (top * 0.25), 0.0, 1.0)
 	var lift := 0.0
+	var ew := _ear_w * CAT_EAR_WIDE
 	for side in [-1.0, 1.0]:
 		# ท่ากระดิก หูซ้ายเอียงออกข้างและต่ำลงนิดหนึ่ง
 		var bent: bool = twitch and side < 0.0
 		var center: float = side * (CAT_EAR_X + (0.07 if bent else 0.0))
 		var d := Vector2(v.x - center, (v.z - _ear_z) * CAT_EAR_FLAT).length()
-		var w := maxf(1.0 - d / _ear_w, 0.0)
-		lift = maxf(lift, _ear_h * (0.8 if bent else 1.0) * w * w * (3.0 - 2.0 * w) * upper)
+		var q := clampf(d / ew, 0.0, 1.0)
+		# ปลายโค้งมนแบบโดม ไหล่ลาดลงนุ่มๆ ที่ฐาน
+		var w := 1.0 - q
+		# ยอดพาราโบลาปลายมน (หูเตี้ย ฐานกว้าง จึงไม่แหลม) ขอบลาดเร็ว ไม่ดันผิวหน้าออก
+		var shape := minf(pow(w * w * (3.0 - 2.0 * w), 0.85) * 1.3, 1.0)   # ยอดทู่ ไม่แหลม
+		lift = maxf(lift, _ear_h * CAT_EAR_SCALE * (0.8 if bent else 1.0) * shape * upper)
 	return lift
 
 ## เส้นมนลากผ่านจุด ปลายและข้อต่อเป็นก้อนกลม
@@ -2063,12 +2095,12 @@ func _build_faces(eye: Material, face: Vector3) -> void:
 		_face_sets.append(sets)
 	# ปากอ้ากลมเล็ก กับปากยิ้มกว้าง
 	_mouth_open = _group(_torso)
-	_mouth_open.position = face + Vector3(0.0, -0.155, 0.49)
+	_mouth_open.position = face + Vector3(0.0, -0.155, (_mouth_cat.position.z - face.z - 0.01) if _mouth_cat != null else 0.49)
 	_part(_mouth_open, _ball(0.034), eye, Vector3.ZERO, Vector3(0.9, 1.1, 0.4))
 	_part(_mouth_open, _ball(0.018), _mat(Color(0.95, 0.5, 0.55), 0.6, 0.2), Vector3(0.0, -0.012, 0.012), Vector3(1.0, 0.7, 0.4))
 	_mouth_open.visible = false
 	_mouth_smile = _group(_torso)
-	_mouth_smile.position = face + Vector3(0.0, -0.14, 0.5)
+	_mouth_smile.position = face + Vector3(0.0, -0.14, (_mouth_cat.position.z - face.z) if _mouth_cat != null else 0.5)
 	var grin := []
 	for n in 9:
 		var a := PI * (0.1 + 0.8 * float(n) / 8.0)
@@ -2117,6 +2149,7 @@ func _apply_face(mood: String) -> void:
 			if g.visible:
 				g.position = eye.position
 				g.rotation_degrees = eye.rotation_degrees
+				g.scale = Vector3.ONE * CAT_EYE_K
 	if _mouth_open != null:
 		_mouth_open.visible = mood in ["squint", "dizzy"]
 		_mouth_smile.visible = mood in ["happy", "big"]
@@ -2150,7 +2183,7 @@ func _animate_cat(delta: float) -> void:
 	for i in _cat_eyes.size():
 		var eye := _cat_eyes[i] as MeshInstance3D
 		var home: Vector3 = _cat_eye_home[i]
-		eye.scale = Vector3(0.85, 1.3 * open, 0.45)
+		eye.scale = Vector3(0.85, 1.3 * open, 0.45) * CAT_EYE_K
 		if galloping:
 			# ตาอยู่บนหน้าเหมือนเดิม แต่ไปกับหัวที่งอเงยขึ้น
 			eye.position = base + _lift_head(home - base, top)
@@ -2167,7 +2200,7 @@ func _animate_cat(delta: float) -> void:
 		if mood == "big":
 			for i in _face_sets.size():
 				var g := (_face_sets[i] as Dictionary)["big"] as Node3D
-				g.scale = Vector3.ONE * (1.0 + 0.04 * sin(hero._clock * 14.0))
+				g.scale = Vector3.ONE * CAT_EYE_K * (1.0 + 0.04 * sin(hero._clock * 14.0))
 	var clock_f: float = hero._clock
 	var acting: bool = hero.plain_swing > 0.0 and hero.plain_swing_kind == "combo"
 	if _blade_fire != null:
@@ -2428,6 +2461,8 @@ const STAFF_PINK := Color(1.0, 0.5, 0.78)
 const STAFF_YELLOW := Color(1.0, 0.88, 0.25)
 const STAFF_VIOLET := Color(0.55, 0.25, 0.9)
 const STAFF_SIDE_AIM := Vector3(0.12, 1.0, 0.25)   # ถือคฑาตั้งข้างตัว หัวคฑาอยู่บน
+const BOW_FRONT_Z := 0.42      # MATCHA ถือธนูหน้าตัว (ไปทางที่หัน) ไม่จมหลังตัว
+const BOW_FRONT_UP := 0.06
 
 var _staff_fx: Array = []         # [โหนด ชนิด ค่า]
 var _staff_last := Vector3.ZERO   # ตำแหน่งหัวคฑาเฟรมก่อน ใช้ให้น้ำยากระฉอก

@@ -2132,7 +2132,7 @@ func _finish_move(delta: float) -> void:
 	if vel.y <= 0.0:
 		for p in platforms:
 			var top := float(p[2])
-			if pos.x >= float(p[0]) and pos.x <= float(p[1]) and from_y >= top - 0.01 and pos.y <= top:
+			if pos.x >= float(p[0]) and pos.x <= float(p[1]) and from_y >= top - 0.01 and pos.y <= top + 0.002:
 				pos.y = top
 				vel.y = 0.0
 				break

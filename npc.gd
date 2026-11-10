@@ -73,11 +73,24 @@ func _make_body() -> void:
 	_body.plain_model = model
 	_body.add_child(model)
 
+## ป้ายชื่อ/เครื่องหมาย ! ไปทับการ์ดเลือดกับแถบเป้าหมายมุมซ้ายบน เลื่อนป้ายลงมาใต้ HUD (คืนระยะเลื่อนในพิกัดของป้าย)
+const HUD_RECT := Rect2(0.0, 0.0, 500.0, 186.0)
+func _hud_push(y: float) -> float:
+	var xf := _label.get_global_transform_with_canvas()
+	var top := y - 30.0 - (110.0 if talk_mark else 0.0)
+	var sr := xf * Rect2(Vector2(-140.0, top), Vector2(280.0, y + 24.0 - top))
+	var hud := Rect2(HUD_RECT.position, HUD_RECT.size + Vector2(UiStyle.safe_side(), 0.0))
+	if not sr.intersects(hud):
+		return 0.0
+	var k := maxf(xf.get_scale().y, 0.001)
+	return (hud.end.y + 6.0 - sr.position.y) / k
+
 func _draw_label() -> void:
 	var nm := str(data.get("name", ""))
 	if nm == "":
 		return
 	var y := -250.0 * BACK_SCALE * float((data.get("look", {}) as Dictionary).get("size", 1.0))
+	y += _hud_push(y)
 	var font := Sketch.font()
 	# ป้ายชื่อขึ้นเฉพาะตอนตัวละครเดินมาใกล้ ตัวที่อยู่ไกลซ่อนไว้ ไม่รกจอ (เครื่องหมาย ! เควสยังขึ้นตลอด)
 	if page == null or not page.has_method("npc_label_on") or page.npc_label_on(self):

@@ -199,7 +199,7 @@ func _spawn_stage() -> void:
 	_spawn_mob_wave()
 	var names := {"warm": "ห้องวอร์มอัพ", "core": "ห้องต่อสู้", "trap": "ห้องกับดัก", "mid": "มินิบอส", "boss": "บอส  " + (CatLook.raid_name(str(data.get("boss", "")), dungeon_town) if not DungeonData.raid(dungeon_town, dungeon_index).is_empty() else CatLook.name_of(str(data.get("boss", "")), dungeon_town))}
 	_flash = "ห้อง %d / %d  %s" % [stage + 1, DungeonData.stage_count(dungeon_town, dungeon_index), names.get(room_data.get("type", ""), "")]
-	_flash_t = 2.0
+	_flash_t = 1.3
 
 func _on_died(m: Monster) -> void:
 	alive = maxi(alive - 1, 0)
@@ -527,6 +527,16 @@ func _draw_hunt_arrow() -> void:
 	_hud.draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-side * 20.0, -13.0), tip + Vector2(-side * 20.0, 13.0)]), Color(0.86, 0.6, 0.55, 0.95))
 	_text(Vector2(x, y + 46.0), "%d" % int(round(best_d)), 19, INK)
 
+func _soft_flash(word: String, a: float) -> void:
+	var font := Sketch.font()
+	var size := UiStyle.SMALL + 3
+	var w := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size).x
+	var c := Vector2(_view.x * 0.5 - 60.0, 104.0)
+	var r := Rect2(c - Vector2(w * 0.5 + 22.0, 17.0), Vector2(w + 44.0, 34.0))
+	UiStyle.fill(_hud, r, Color(UiStyle.SOFT_PRIMARY, 0.9 * a), 17.0)
+	UiStyle.frame(_hud, r, 905, UiStyle.SOFT_LINE, Color(UiStyle.SOFT_ACCENT, a), 17.0)
+	_hud.draw_string(font, c + Vector2(-w * 0.5, float(size) * 0.36), word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size, Color(UiStyle.SOFT_TEXT, a))
+
 func _text(at: Vector2, word: String, size: int, color: Color) -> void:
 	var font := Sketch.font()
 	var w := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size).x
@@ -569,7 +579,8 @@ func _draw_hud() -> void:
 	if _ult_warn > 0.0:
 		_text(Vector2(_view.x * 0.5, _view.y * 0.42), "ท่าใหญ่! กระโดดขึ้นแท่นหลบ!", 46, Color(0.9, 0.2, 0.2, 0.6 + 0.4 * sin(_ult_warn * 20.0)))
 	if _flash_t > 0.0 and result == "":
-		_text(Vector2(_view.x * 0.5, _view.y * 0.3), _flash, 44, Color(0.74, 0.42, 0.4, minf(_flash_t * 2.0, 1.0)))
+		# ป้ายชื่อห้องเล็ก นุ่ม ใต้ชื่อดันด้านบน ไม่บังกลางจอ จางไว
+		_soft_flash(_flash, minf(_flash_t * 2.5, 1.0))
 	if result == "win":
 		_text(Vector2(_view.x * 0.5, _view.y * 0.34), "ผ่านดันเจี้ยน!", 72, Color(0.85, 0.55, 0.1))
 	elif result == "lose":

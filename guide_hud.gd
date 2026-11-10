@@ -8,8 +8,8 @@ const BANNER := Rect2(20.0, 124.0, 456.0, 50.0)   # แถบเป้าหม�
 const MINI_R := 28.0          # แบนเนอร์พับเหลือไอคอนอุ้งเท้ากลม
 const AUTO_FOLD := 7.0        # ผู้เล่นคุ้นแล้ว (เลเวล 10 ขึ้นไป) แบนเนอร์โชว์เท่านี้วินาทีแล้วพับเอง
 const FAMILIAR_LV := 10
-const TOAST_W := 500.0
-const TOAST_TIME := 5.0
+const TOAST_W := 470.0
+const TOAST_TIME := 3.6        # คำแนะนำขึ้นสั้นลง ไม่ค้างบังจอ
 const NPC_LIFT := 70.0      # จุดที่ชี้ ระดับลำตัวของ NPC
 const HINTS := {
 	"town": "เดินด้วยจอยซ้าย\nเข้าใกล้คนแล้วกดปุ่มกลางล่างเพื่อคุย",
@@ -177,9 +177,10 @@ func _tick_fold(delta: float) -> void:
 
 func _toast_rect() -> Rect2:
 	var v := get_viewport_rect().size
-	# อยู่ระหว่างวงเลเวลกับปุ่มมุมขวาบน สูงตามจำนวนบรรทัด
-	var n := _wrap(str(_toasts[0][0]), UiStyle.BODY, TOAST_W - 90.0).size() if not _toasts.is_empty() else 1
-	return Rect2(v.x * 0.5 - TOAST_W * 0.5 + 10.0, 98.0, TOAST_W, 34.0 + 30.0 * float(n))
+	var n := _wrap(str(_toasts[0][0]), UiStyle.SMALL, TOAST_W - 76.0).size() if not _toasts.is_empty() else 1
+	# กลางล่าง ใต้เท้าตัวละคร เหนือปุ่มคุย ไม่ทับป้ายชื่อ NPC/มอน
+	var h := 24.0 + 26.0 * float(n)
+	return Rect2(v.x * 0.5 - TOAST_W * 0.5, v.y - 135.0 - h, TOAST_W, h)
 
 func _input(event: InputEvent) -> void:
 	if not (event is InputEventScreenTouch and event.pressed) or not visible:
@@ -357,17 +358,18 @@ func _draw_pointer() -> void:
 func _draw_toast(word: String, left: float) -> void:
 	var r := _toast_rect()
 	var a := clampf(left / 0.4, 0.0, 1.0) * clampf((TOAST_TIME - left) / 0.25, 0.0, 1.0)
-	UiStyle.fill(self, Rect2(r.position + Vector2(3.0, 5.0), r.size), Color(0.0, 0.0, 0.0, 0.12 * a))
-	UiStyle.box(self, r, 813, UiStyle.LINE_BOLD, Color(UiStyle.INK, a), Color(1.0, 0.95, 0.9, 0.97 * a))
-	UiStyle.paw(self, r.position + Vector2(34.0, r.size.y * 0.5), 15.0, Color(1.0, 0.6, 0.7, a))
+	# กล่องนุ่ม เล็ก เส้นบาง สีชุดหน้าโหลด
+	UiStyle.fill(self, Rect2(r.position + Vector2(2.0, 3.0), r.size), Color(0.0, 0.0, 0.0, 0.06 * a))
+	UiStyle.box(self, r, 813, UiStyle.SOFT_LINE, Color(UiStyle.SOFT_INK, 0.8 * a), Color(UiStyle.SOFT_CARD, 0.92 * a))
+	draw_circle(r.position + Vector2(26.0, r.size.y * 0.5), 7.0, Color(UiStyle.SOFT_ACCENT, 0.8 * a))
 	var font := Sketch.font()
 	# ตัดเป็น 2 บรรทัดถ้ายาว
-	var size := UiStyle.BODY
-	var max_w := r.size.x - 90.0
+	var size := UiStyle.SMALL
+	var max_w := r.size.x - 76.0
 	var lines := _wrap(word, size, max_w)
-	var y0 := r.get_center().y - float(lines.size() - 1) * 15.0 + float(size) * 0.36
+	var y0 := r.get_center().y - float(lines.size() - 1) * 13.0 + float(size) * 0.36
 	for i in lines.size():
-		draw_string(font, Vector2(r.position.x + 62.0, y0 + float(i) * 30.0), str(lines[i]), HORIZONTAL_ALIGNMENT_LEFT, -1.0, size, Color(UiStyle.INK, a))
+		draw_string(font, Vector2(r.position.x + 46.0, y0 + float(i) * 26.0), str(lines[i]), HORIZONTAL_ALIGNMENT_LEFT, -1.0, size, Color(UiStyle.SOFT_TEXT, a))
 
 ## ตัดบรรทัดตาม \n ก่อน บรรทัดที่ยังยาวเกินตัดทีละตัวอักษร (ภาษาไทยไม่มีช่องว่าง)
 func _wrap(word: String, size: int, max_w: float) -> Array:

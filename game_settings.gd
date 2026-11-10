@@ -12,6 +12,8 @@ static var sfx := 0.8
 static var vibrate := true
 static var alpha_i := 0                  # 0 = 50% (ค่าเดิมของเกม)
 static var size_i := 1                   # 1 = กลาง (ขนาดเดิม)
+static var smooth := false               # โหมดลื่น: ปิดฟิลเตอร์ทั้งจอ ประหยัดเครื่อง
+static var smooth_auto_done := false     # เคยเปิดโหมดลื่นให้อัตโนมัติแล้ว (ไม่วัดซ้ำ)
 static var _loaded := false
 
 static func ensure() -> void:
@@ -26,6 +28,8 @@ static func ensure() -> void:
 	vibrate = bool(cfg.get_value("input", "vibrate", vibrate))
 	alpha_i = clampi(int(cfg.get_value("pad", "alpha", alpha_i)), 0, ALPHAS.size() - 1)
 	size_i = clampi(int(cfg.get_value("pad", "size", size_i)), 0, SIZES.size() - 1)
+	smooth = bool(cfg.get_value("video", "smooth", smooth))
+	smooth_auto_done = bool(cfg.get_value("video", "smooth_auto_done", smooth_auto_done))
 
 static func save() -> void:
 	var cfg := ConfigFile.new()
@@ -34,7 +38,13 @@ static func save() -> void:
 	cfg.set_value("input", "vibrate", vibrate)
 	cfg.set_value("pad", "alpha", alpha_i)
 	cfg.set_value("pad", "size", size_i)
+	cfg.set_value("video", "smooth", smooth)
+	cfg.set_value("video", "smooth_auto_done", smooth_auto_done)
 	cfg.save(PATH)
+
+static func is_smooth() -> bool:
+	ensure()
+	return smooth
 
 static func pad_alpha() -> float:
 	ensure()
